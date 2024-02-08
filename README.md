@@ -1,9 +1,28 @@
 # Monster-Hunter-Frontier-Importer
+
 A model importer for Monster Hunter Frontier FMod Files
 
-# Author
+## Author
+
 * **AsteriskAmpersand/\*&**
 
-# Acknowledgements
+## Acknowledgements
+
 * **MHVuze** - For the Frontier Recursive Block Format documentation used to build this importer.
 * **Silvris** - For the Materials and Skeleton documentation used to build this importer.
+
+## Install
+
+As any Blender add-on:
+
+- Download this repo as ZIP ([Code > Download ZIP](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/archive/refs/heads/main.zip))
+- Open Blender, ``Edit > Preferences > Add-ons > Install...`` select the ZIP folder.
+
+## Usage
+
+- Decompress data with [ReFrontier](https://github.com/mhvuze/ReFrontier). You want .fmod (3D model) or .fskl (armature) files.
+- Open Blender, ``File > Import > [MHF FMOD |MHF FSKL]``, select the file.
+
+## In this fork (Houmgaor/)
+
+- Compatibility with Blender 2.8+.
