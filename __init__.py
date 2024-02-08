@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Apr  6 02:31:16 2019
-
-@author: AsteriskAmpersand
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Wed Mar  6 13:38:47 2019
 
 @author: AsteriskAmpersand
 """
 # from .dbg import dbg_init
 # dbg_init()
+import bpy
+
+from .operators.fmodimport import ImportFMOD
+from .operators.fsklimport import ImportFSKL
+from .operators.fsklConverter import ConvertFSKL
+from .operators.fmodimport import menu_func_import as mhf_model_menu_func_import
+from .operators.fsklimport import menu_func_import as mhf_skele_menu_func_import
 
 content = bytes("", "UTF-8")
 bl_info = {
@@ -21,16 +21,8 @@ bl_info = {
     "author": "AsteriskAmpersand (Code) & Vuze (Structure)",
     "location": "File > Import-Export > FMod/MHF",
     "version": (1, 1, 0),
-    "blender": (2, 91, 0)
+    "blender": (2, 80, 0)
 }
- 
-import bpy
-
-from .operators.fmodimport import ImportFMOD
-from .operators.fsklimport import ImportFSKL
-from .operators.fsklConverter import ConvertFSKL
-from .operators.fmodimport import menu_func_import as mhf_model_menu_func_import
-from .operators.fsklimport import menu_func_import as mhf_skele_menu_func_import
 
 
 def register():

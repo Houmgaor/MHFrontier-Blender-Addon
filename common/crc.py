@@ -131,20 +131,22 @@ class CrccheckBase(object):
 
     def final(self):
         """Return final check value.
-           The internal state is not modified by this so further data can be processed afterwards.
+           The internal state is not modified by this so further data can be processed afterward.
 
            Return:
                int: final value
         """
         return self._value
 
-
     def finalhex(self, byteorder='big'):
-        """Return final checksum value as hexadecimal string (without leading "0x"). The hex value is zero padded to bitwidth/8.
-           The internal state is not modified by this so further data can be processed afterwards.
+        """
+        Return final checksum value as hexadecimal string (without leading "0x").
 
-           Return:
-               str: final value as hex string without leading '0x'.
+        The hex value is zero padded to bitwidth/8. The internal state is not modified by this so further data
+        can be processed afterwards.
+
+       Return:
+           str: final value as hex string without leading '0x'.
         """
         asbytes = self.finalbytes(byteorder)
         try:
