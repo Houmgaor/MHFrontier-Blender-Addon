@@ -21,10 +21,10 @@ As any Blender add-on:
 ## Usage
 
 - Decompress data with [ReFrontier](https://github.com/mhvuze/ReFrontier). You want .fmod (3D model) or .fskl (armature) files.
-- Open Blender, ``File > Import > [MHF FMOD |MHF FSKL]``, select the file.
-
+- Open Blender, ``File > Import > MHF FMOD``, select the file.
 ![Disufiroa image](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/2c9f9223-3296-437e-856b-446cfb1cf2a7)
-
+- Add the "skeleton" (before armature), ``File > Import > MHF FSKL``.
+- Convert the skeleton to an armature, open a Menu Search and type "Convert FSKL to Armature".
 
 ## In this fork (Houmgaor/)
 
