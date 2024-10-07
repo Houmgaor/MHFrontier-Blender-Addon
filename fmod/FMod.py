@@ -21,7 +21,7 @@ try:
         BoneMapData,
     )
     from ..common.FileLike import FileLike
-except Exception as err:
+except ModuleNotFoundError as err:
     print("Cannot import modules in normal mode, fallback to local folder search. Error:", err)
     import sys
 

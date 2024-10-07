@@ -5,9 +5,6 @@ Created on Mon Dec 30 01:17:01 2019
 @author: AsteriskAmpersand
 """
 import bpy
-import bmesh
-import array
-import os
 from mathutils import Vector, Matrix
 
 from ..fmod.FSkl import FSkeleton
@@ -17,14 +14,14 @@ class FSklImporter:
     @staticmethod
     def execute(fmod_path):
         skeleton = FSkeleton(fmod_path).skeleton_structure()
-        armature_object = bpy.data.objects.new("Armature", None)
+        armature_object = bpy.data.objects.new("FSKL Tree", None)
         if bpy.app.version >= (2, 8):
             # Blender 2.8+
             bpy.context.collection.objects.link(armature_object)
         else:
             # Blender <2.8
             bpy.context.scene.objects.link(armature_object)
-        current_skeleton = {"Armature": armature_object}
+        current_skeleton = {"Root": armature_object}
         for bone in skeleton.values():
             FSklImporter.import_bone(bone, current_skeleton, skeleton)
 
@@ -48,7 +45,7 @@ class FSklImporter:
         else:
             # Blender <2.8
             bpy.context.scene.objects.link(bone_object)
-        parent_name = "Armature" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
+        parent_name = "Root" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
         if parent_name not in skeleton:
             FSklImporter.import_bone(skeleton_structure[bone.parentID], skeleton, skeleton_structure)
         bone_object["id"] = bone.nodeID

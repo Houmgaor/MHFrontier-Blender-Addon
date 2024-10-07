@@ -17,11 +17,11 @@ Open Blender, ``File > Import > MHF FMOD``, select the file.
 
 ![Disufiroa 3D model](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/f9ebbd8f-2ccd-418b-ae0b-c1cfedbfcf68)
 
-Add the "skeleton" (before armature), ``File > Import > MHF FSKL``.
+Add the "skeleton" (hierarchy of axes), ``File > Import > MHF FSKL``.
   
 ![Disufiroa skeleton](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/6e4461a3-f65b-45c6-b3cc-509edafb76df)
 
-Convert the skeleton to an armature, open a Menu Search and type "Convert FSKL to Armature".
+Convert the skeleton to an armature, ``Object > Create Armature from FSKL Tree``.
 
 ![Disufiroa with armature](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/4d4dbf43-ae29-4d32-9af8-c3be6d85f1ff)
 

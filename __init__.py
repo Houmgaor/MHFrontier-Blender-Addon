@@ -4,61 +4,69 @@ Created on Wed Mar  6 13:38:47 2019
 
 @author: AsteriskAmpersand
 """
-# from .dbg import dbg_init
-# dbg_init()
 import bpy
 
-from .operators.fmodimport import ImportFMOD
-from .operators.fsklimport import ImportFSKL
-from .operators.fsklConverter import ConvertFSKL
-from .operators.fmodimport import menu_func_import as mhf_model_menu_func_import
-from .operators.fsklimport import menu_func_import as mhf_skele_menu_func_import
+from .operators import fmodimport
+from .operators import fsklimport
+from .operators import fsklConverter
 
 content = bytes("", "UTF-8")
 bl_info = {
-    "name": "MHF FMod Model Importer",
+    "name": "MHFrontier Model Importer",
     "category": "Import-Export",
-    "author": "AsteriskAmpersand (Code) & Vuze (Structure)",
-    "location": "File > Import-Export > FMod/MHF",
+    "author": "AsteriskAmpersand (Code) & Vuze (Structure) & Houmgaor (Update)",
+    "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
     "version": (2, 0, 0),
     "blender": (2, 80, 0)
 }
 
 
 def register():
-    """Add the add-on."""
+    """
+    Register the add-on to Blender.
+
+    It adds two new options for File Import: Import FMOD and Import FSKL.
+    You will also get a new feature "Convert FSKL to Armature".
+    """
     # Register the FMOD (Frontier Model) file import
-    bpy.utils.register_class(ImportFMOD)
+    bpy.utils.register_class(fmodimport.ImportFMOD)
     # New structure since Blender 2.8x
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.append(mhf_model_menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.append(fmodimport.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.append(mhf_model_menu_func_import)
-    # Register the FSKL (Frontier Skeleton) file import
-    bpy.utils.register_class(ImportFSKL)
-    if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.append(mhf_skele_menu_func_import)
-    else:
-        bpy.types.INFO_MT_file_import.append(mhf_skele_menu_func_import)
+        bpy.types.INFO_MT_file_import.append(fmodimport.menu_func_import)
 
-    # Register the conversion to Blender Armature
-    bpy.utils.register_class(ConvertFSKL)
+    # Register the FSKL (Frontier Skeleton) file import
+    bpy.utils.register_class(fsklimport.ImportFSKL)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.append(fsklimport.menu_func_import)
+    else:
+        bpy.types.INFO_MT_file_import.append(fsklimport.menu_func_import)
+
+    # Register the creation of the Blender Armature
+    bpy.utils.register_class(fsklConverter.ConvertFSKL)
+    bpy.types.VIEW3D_MT_object.append(fsklConverter.menu_func)
 
 
 def unregister():
-    """Remove the add-on."""
-    bpy.utils.unregister_class(ImportFMOD)
+    """Remove the FMOD/FSKL add-on."""
+    bpy.utils.unregister_class(fmodimport.ImportFMOD)
     # New structure since Blender 2.8x
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.remove(mhf_model_menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.remove(fmodimport.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.remove(mhf_model_menu_func_import)
-    bpy.utils.unregister_class(ImportFSKL)
+        bpy.types.INFO_MT_file_import.remove(fmodimport.menu_func_import)
+
+    # Frontier Skeleton import
+    bpy.utils.unregister_class(fsklimport.ImportFSKL)
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.remove(mhf_skele_menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.remove(fsklimport.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.remove(mhf_skele_menu_func_import)
-    bpy.utils.unregister_class(ConvertFSKL)
+        bpy.types.INFO_MT_file_import.remove(fsklimport.menu_func_import)
+
+    # Unregister Armature creation
+    bpy.utils.unregister_class(fsklConverter.ConvertFSKL)
+    bpy.types.VIEW3D_MT_object.remove(fsklConverter.menu_func)
 
 
 if __name__ == "__main__":
