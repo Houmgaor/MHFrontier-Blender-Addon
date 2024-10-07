@@ -1,9 +1,12 @@
+"""Renderer for multiple files at once."""
+from pathlib import Path
+
 from bpy_extras import bpy, bmesh
 from mathutils import Vector, Matrix
-from pathlib import Path
 
 
 def set_viewport(space, ctx, position):
+    """Set the viewport for a file rendering."""
     rv3d = space.region_3d
     rv3d.view_matrix = position
     bpy.ops.object.select_all(action='DESELECT')
@@ -12,8 +15,8 @@ def set_viewport(space, ctx, position):
     bpy.ops.object.select_all(action='DESELECT')
 
 
-frontier = r"G:\Frontier"
-for filepath in list(Path(frontier).rglob("*.fmod")):
+def render_file(filepath):
+    """Render a single file."""
     filepath = filepath.resolve().as_posix()
     bpy.ops.custom_import.import_mhf_fmod(filepath=filepath)
     space, area = next(
@@ -33,3 +36,7 @@ for filepath in list(Path(frontier).rglob("*.fmod")):
         bpy.context.scene.render.resolution_percentage = 100
         bpy.context.scene.render.filepath = filepath[:-4] + "-Angle %d" % ix + ".JPEG"
         bpy.ops.render.opengl(write_still=True)
+
+
+frontier = r"G:\Frontier"
+map(render_file, Path(frontier).rglob("*.fmod"))

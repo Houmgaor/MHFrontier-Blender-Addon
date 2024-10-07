@@ -8,12 +8,15 @@ import bpy
 
 
 def set_location(node, location):
+    """Set central location for node."""
     x, y = location
     node.location = (x - 14) * 100, -y * 100
 
 
 def create_tex_node(node_tree, color, texture, name):
     """
+    Create a ShaderNodeTexImage with the assigned texture.
+
     setup scheme from https://i.stack.imgur.com/cdRIK.png
     """
     base_type = "ShaderNodeTexImage"
@@ -31,6 +34,7 @@ def create_tex_node(node_tree, color, texture, name):
 
 
 def material_setup(blender_obj, *_args):
+    """Set up the addition of a material."""
     if "material" in blender_obj.data:
         mat_name = blender_obj.data["material"].replace("\x00", "")
     else:
@@ -49,6 +53,11 @@ def material_setup(blender_obj, *_args):
 
 
 def principled_setup(node_tree):
+    """
+    Create a new principled shader.
+
+    It starts with a ShaderNodeBsdfPrincipled.
+    """
     bsdf_node = node_tree.nodes.new(type="ShaderNodeBsdfPrincipled")
     set_location(bsdf_node, (6, 0))
     bsdf_node.name = "Principled BSDF"
@@ -71,13 +80,17 @@ def principled_setup(node_tree):
         node_tree.links.new(normal_node.outputs[0], bsdf_node.inputs["Normal"])
     specular_node = yield
     if specular_node:
-        node_tree.links.new(specular_node.outputs[0], bsdf_node.inputs["Specular"])
+        if bpy.app.version >= (4, ):
+            input_name = "Specular IOR Level"
+        else:
+            input_name = "Specular"
+        node_tree.links.new(specular_node.outputs[0], bsdf_node.inputs[input_name])
     yield
     yield end_node
 
 
 def diffuse_setup(node_tree, texture, *_args):
-    """Create DiffuseTexture"""
+    """Create DiffuseTexture."""
     diffuse_node = create_tex_node(node_tree, "COLOR", texture, "Diffuse Texture")
     set_location(diffuse_node, (0, 0))
     return diffuse_node
@@ -88,16 +101,17 @@ def normal_setup(node_tree, texture, *_args):
     normal_node = create_tex_node(node_tree, "NONE", texture, "Normal Texture")
     set_location(normal_node, (0, 6))
     # Create NormalMapNode
-    normalmap_node = node_tree.nodes.new(type="ShaderNodeNormalMap")
-    normalmap_node.name = "Normal Map"
-    set_location(normalmap_node, (4, 6))
+    normal_map_node = node_tree.nodes.new(type="ShaderNodeNormalMap")
+    normal_map_node.name = "Normal Map"
+    set_location(normal_map_node, (4, 6))
     # Plug Normal Data to Node (color -> color)
-    node_tree.links.new(normal_node.outputs[0], normalmap_node.inputs[1])
-    return normalmap_node
+    node_tree.links.new(normal_node.outputs[0], normal_map_node.inputs[1])
+    return normal_map_node
 
 
 def specular_setup(node_tree, texture, *_args):
-    """Create SpecularityMaterial"""
+    """Create specular texture."""
+    # SpecularityMaterial setup
     specular_node = create_tex_node(node_tree, "NONE", texture, "Specular Texture")
     set_location(specular_node, (0, 3))
     # Create RGB Curves
@@ -110,7 +124,7 @@ def specular_setup(node_tree, texture, *_args):
 
 
 def emission_setup(_node_tree, _texture, *_args):
-    """Commented out, it's not really possible to work withit without the parameters"""
+    """Commented out, it's not really possible to work without the parameters."""
     return ""
 
 
@@ -121,52 +135,52 @@ def rmt_setup(node_tree, texture, *_args):
     setup scheme from https://i.stack.imgur.com/TdK1W.png +
     https://i.stack.imgur.com/40vbG.jpg
     """
-    rmtNode = create_tex_node(node_tree, "COLOR", texture, "RMT Texture")
-    set_location(rmtNode, (0, 3))
-    #Create Separate RGB
-    splitterNode = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
-    splitterNode.name = "RMT Splitter"
-    set_location(splitterNode, (2, 1))
-    #Create Metallicness
-    #Create Roughness - Create InvertNode
-    inverterNode = node_tree.nodes.new(type="ShaderNodeInvert")
-    inverterNode.name = "Roughness Inverter"
-    set_location(inverterNode, (4, 2))
-    #Tex To Splitter
-    node_tree.links.new(rmtNode.outputs[0], splitterNode.inputs[0])
-    #Splitter to Inverter
-    node_tree.links.new(splitterNode.outputs[0], inverterNode.inputs[0])
-    return inverterNode, splitterNode, rmtNode
+    rmt_node = create_tex_node(node_tree, "COLOR", texture, "RMT Texture")
+    set_location(rmt_node, (0, 3))
+    # Create Separate RGB
+    splitter_node = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
+    splitter_node.name = "RMT Splitter"
+    set_location(splitter_node, (2, 1))
+    # Create Metallicness
+    # Create Roughness - Create InvertNode
+    inverter_node = node_tree.nodes.new(type="ShaderNodeInvert")
+    inverter_node.name = "Roughness Inverter"
+    set_location(inverter_node, (4, 2))
+    # Tex To Splitter
+    node_tree.links.new(rmt_node.outputs[0], splitter_node.inputs[0])
+    # Splitter to Inverter
+    node_tree.links.new(splitter_node.outputs[0], inverter_node.inputs[0])
+    return inverter_node, splitter_node, rmt_node
 
 
 def fur_setup(node_tree, texture, *_args):
     # TODO - Actually Finish This
     # Create FMMap
-    fmNode = create_tex_node(node_tree, "COLOR", texture, "FM Texture")
+    fm_node = create_tex_node(node_tree, "COLOR", texture, "FM Texture")
     # Separate RGB
-    splitterNode = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
-    splitterNode.name = "FM Splitter"
-    node_tree.links.new(fmNode.outputs[0], splitterNode.inputs[0])
+    splitter_node = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
+    splitter_node.name = "FM Splitter"
+    node_tree.links.new(fm_node.outputs[0], splitter_node.inputs[0])
     # Create Input
-    inputNode = node_tree.nodes.new(type="NodeReroute")
-    inputNode.name = "Reroute Node"
+    input_node = node_tree.nodes.new(type="NodeReroute")
+    input_node.name = "Reroute Node"
     # Create Roughness - Create InvertNode
-    inverterNode = node_tree.nodes.new(type="ShaderNodeInvert")
-    inverterNode.name = "Fur Inverter"
-    node_tree.links.new(splitterNode.outputs[1], inverterNode.inputs[1])
+    inverter_node = node_tree.nodes.new(type="ShaderNodeInvert")
+    inverter_node.name = "Fur Inverter"
+    node_tree.links.new(splitter_node.outputs[1], inverter_node.inputs[1])
     # Create HairBSDF
     transmission_node = node_tree.nodes.new(type="ShaderNodeHairBSDF")
     transmission_node.component = "TRANSMISSION"
-    reflectionNode = node_tree.nodes.new(type="ShaderNodeHairBSDF")
-    reflectionNode.component = "REFLECTION"
-    for targetNode in [transmission_node, reflectionNode]:
-        node_tree.links.new(inputNode.outputs[0], targetNode.inputs[0])
-        node_tree.links.new(splitterNode.outputs[0], targetNode.inputs[1])
-        node_tree.links.new(splitterNode.outputs[1], targetNode.inputs[2])
-        node_tree.links.new(inverterNode.outputs[0], targetNode.inputs[3])
-    hairNode = node_tree.nodes.new(type="ShaderNodeMixShader")
-    node_tree.links.new(transmission_node.outputs[0], hairNode.inputs[1])
-    node_tree.links.new(reflectionNode.outputs[0], hairNode.inputs[2])
+    reflection_node = node_tree.nodes.new(type="ShaderNodeHairBSDF")
+    reflection_node.component = "REFLECTION"
+    for targetNode in [transmission_node, reflection_node]:
+        node_tree.links.new(input_node.outputs[0], targetNode.inputs[0])
+        node_tree.links.new(splitter_node.outputs[0], targetNode.inputs[1])
+        node_tree.links.new(splitter_node.outputs[1], targetNode.inputs[2])
+        node_tree.links.new(inverter_node.outputs[0], targetNode.inputs[3])
+    hair_node = node_tree.nodes.new(type="ShaderNodeMixShader")
+    node_tree.links.new(transmission_node.outputs[0], hair_node.inputs[1])
+    node_tree.links.new(reflection_node.outputs[0], hair_node.inputs[2])
     return
 
 

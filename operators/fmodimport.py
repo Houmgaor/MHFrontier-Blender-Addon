@@ -41,10 +41,10 @@ class ImportFMOD(Operator, ImportHelper):
 
         importer = FModImporterLayer.FModImporter()
         if self.clear_scene:
-            importer.clearScene()
-        importer.maximizeClipping()
+            importer.clear_scene()
+        importer.maximize_clipping()
         importer.execute(self.properties.filepath, self.import_textures)
-        importer.maximizeClipping()
+        importer.maximize_clipping()
         return {'FINISHED'}
 
 

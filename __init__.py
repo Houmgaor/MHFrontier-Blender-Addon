@@ -27,17 +27,21 @@ bl_info = {
 
 def register():
     """Add the add-on."""
+    # Register the FMOD (Frontier Model) file import
     bpy.utils.register_class(ImportFMOD)
     # New structure since Blender 2.8x
     if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.append(mhf_model_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(mhf_model_menu_func_import)
+    # Register the FSKL (Frontier Skeleton) file import
     bpy.utils.register_class(ImportFSKL)
     if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.append(mhf_skele_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(mhf_skele_menu_func_import)
+
+    # Register the conversion to Blender Armature
     bpy.utils.register_class(ConvertFSKL)
 
 

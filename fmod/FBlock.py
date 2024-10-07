@@ -138,9 +138,9 @@ class FBlock:
 
     def marshall(self, data):
         self.Header.marshall(data)
-        subData = FileLike(data.read(self.Header.size - len(self.Header)))
+        sub_data = FileLike(data.read(self.Header.size - len(self.Header)))
         self.Data = [self.get_type() for _ in range(self.Header.count)]
-        [datum.marshall(subData) for datum in self.Data]
+        [datum.marshall(sub_data) for datum in self.Data]
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
@@ -226,7 +226,7 @@ class MaterialHeader(PyCStruct):
         ("unkn12", "uint32"), ])
 
 
-class materialChannelMapping(PyCStruct):
+class MaterialChannelMapping(PyCStruct):
     def __init__(self, blocksize):
         if blocksize > 272:
             self.fields = OrderedDict([

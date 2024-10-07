@@ -24,47 +24,49 @@ from ..fmod.FMod import FModel
 
 class FModImporter:
     @staticmethod
-    def execute(fmodPath, import_textures):
+    def execute(fmod_path, import_textures):
         bpy.context.scene.render.engine = 'CYCLES'
-        fmod = FModel(fmodPath)
+        fmod = FModel(fmod_path)
         meshes = fmod.traditional_mesh_structure()
         materials = fmod.Materials
         blender_materials = {}
         for ix, mesh in enumerate(meshes):
-            FModImporter.importMesh(ix, mesh, blender_materials)
+            FModImporter.import_mesh(ix, mesh, blender_materials)
         if import_textures:
-            FModImporter.importTextures(materials, fmodPath, blender_materials)
+            FModImporter.import_textures(materials, fmod_path, blender_materials)
 
     @staticmethod
-    def importMesh(ix, mesh, bmats):
+    def import_mesh(ix, mesh, blender_materials):
         mesh_objects = []
         bpy.ops.object.select_all(action='DESELECT')
 
         # Geometry
         blender_mesh, blender_object = FModImporter.create_mesh("FModMeshpart %03d" % (ix,), mesh)
         # Normals Handling
-        FModImporter.setNormals(mesh["normals"], blender_mesh)
+        FModImporter.set_normals(mesh["normals"], blender_mesh)
         # UVs
         if bpy.app.version >= (2, 8):
             # Blender 2.8+
-            FModImporter.createTextureLayerFromObj(
-                blender_object, blender_mesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats
+            FModImporter.create_texture_layer_from_obj(
+                blender_object, blender_mesh, mesh["uvs"],
+                mesh["materials"], mesh["faceMaterial"], blender_materials
             )
         else:
             # Blender <2.8
-            FModImporter.createTextureLayer(
-                blender_mesh, mesh["uvs"], mesh["materials"], mesh["faceMaterial"], bmats
+            FModImporter.create_texture_layer(
+                blender_mesh, mesh["uvs"], mesh["materials"],
+                mesh["faceMaterial"], blender_materials
             )
 
         # Weights
-        FModImporter.setWeights(mesh["weights"], mesh["boneRemap"], blender_object)
+        FModImporter.set_weights(mesh["weights"], mesh["boneRemap"], blender_object)
         blender_mesh.update()
         mesh_objects.append(blender_object)
 
     @staticmethod
-    def create_mesh(name, meshpart):
+    def create_mesh(name, mesh_part):
         blender_mesh = bpy.data.meshes.new("%s" % (name,))
-        blender_mesh.from_pydata(meshpart["vertices"], [], meshpart["faces"])
+        blender_mesh.from_pydata(mesh_part["vertices"], [], mesh_part["faces"])
         blender_mesh.update()
         blender_object = bpy.data.objects.new("%s" % (name,), blender_mesh)
         # Blender 2.8+
@@ -76,85 +78,98 @@ class FModImporter:
         return blender_mesh, blender_object
 
     @staticmethod
-    def createTextureLayerFromObj(
-        blenderObj, blenderMesh, uv, materialList, faceMaterials, bmats
+    def create_texture_layer_from_obj(
+        blender_obj, blender_mesh, uv, material_list,
+        face_materials, blender_materials
     ):
         """General function to create texture, for Blender 2.8+."""
-        for material in materialList:
-            matname = "FrontierMaterial-%03d" % material
-            if material not in bmats:
-                mat = bpy.data.materials.new(name=matname)
-                bmats[material] = mat
-            mat = bmats[material]
-            blenderMesh.materials.append(mat)
-        blenderObj.data.uv_layers.new(name="UV0")
-        blenderMesh.update()
+        for material in material_list:
+            material_name = "FrontierMaterial-%03d" % material
+            if material not in blender_materials:
+                mat = bpy.data.materials.new(name=material_name)
+                blender_materials[material] = mat
+            mat = blender_materials[material]
+            blender_mesh.materials.append(mat)
+        blender_obj.data.uv_layers.new(name="UV0")
+        blender_mesh.update()
         blender_b_mesh = bmesh.new()
-        blender_b_mesh.from_mesh(blenderMesh)
-        uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
+        blender_b_mesh.from_mesh(blender_mesh)
+        try:
+            uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
+        except AttributeError as error:
+            # Not sure why this happens. Old Blender version?
+            uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
+            print(error)
         blender_b_mesh.faces.ensure_lookup_table()
         for face in blender_b_mesh.faces:
             for loop in face.loops:
-                loop[uv_layer].UV = uv[loop.vert.index]
-            face.material_index = faceMaterials[face.index]
-        blender_b_mesh.to_mesh(blenderMesh)
-        blenderMesh.update()
+                loop[uv_layer].uv = uv[loop.vert.index]
+            face.material_index = face_materials[face.index]
+        blender_b_mesh.to_mesh(blender_mesh)
+        blender_mesh.update()
         return
 
     @staticmethod
-    def createTextureLayer(blenderMesh, uv, materialList, faceMaterials, bmats):
-        for material in materialList:
+    def create_texture_layer(
+        blender_mesh, uv, material_list, face_materials, blender_materials
+    ):
+        for material in material_list:
             material_name = "FrontierMaterial-%03d" % material
-            if material not in bmats:
+            if material not in blender_materials:
                 mat = bpy.data.materials.new(name=material_name)
-                bmats[material] = mat
-            mat = bmats[material]
-            blenderMesh.materials.append(mat)
-        blenderMesh.uv_textures.new("UV0")
-        blenderMesh.update()
+                blender_materials[material] = mat
+            mat = blender_materials[material]
+            blender_mesh.materials.append(mat)
+        blender_mesh.uv_textures.new("UV0")
+        blender_mesh.update()
         blender_b_mesh = bmesh.new()
-        blender_b_mesh.from_mesh(blenderMesh)
-        uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
+        blender_b_mesh.from_mesh(blender_mesh)
+        try:
+            uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
+        except AttributeError as error:
+            # Not sure why this happens. Old Blender version?
+            uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
+            print(error)
         blender_b_mesh.faces.ensure_lookup_table()
         for face in blender_b_mesh.faces:
             for loop in face.loops:
-                loop[uv_layer].UV = uv[loop.vert.index]
-            face.material_index = faceMaterials[face.index]
-        blender_b_mesh.to_mesh(blenderMesh)
-        blenderMesh.update()
+                loop[uv_layer].uv = uv[loop.vert.index]
+            face.material_index = face_materials[face.index]
+        blender_b_mesh.to_mesh(blender_mesh)
+        blender_mesh.update()
 
     @staticmethod
-    def setNormals(normals, meshpart):
-        meshpart.update(calc_edges=True)
+    def set_normals(normals, mesh_part):
+        mesh_part.update(calc_edges=True)
 
-        cl_normals = array.array('f', [0.0] * (len(meshpart.loops) * 3))
-        meshpart.loops.foreach_get("normal", cl_normals)
-        meshpart.polygons.foreach_set("use_smooth", [True] * len(meshpart.polygons))
+        cl_normals = array.array('f', [0.0] * (len(mesh_part.loops) * 3))
+        mesh_part.loops.foreach_get("normal", cl_normals)
+        mesh_part.polygons.foreach_set("use_smooth", [True] * len(mesh_part.polygons))
 
-        meshpart.normals_split_custom_set_from_vertices(normals)
+        mesh_part.normals_split_custom_set_from_vertices(normals)
 
         # Disappears in Blender 4.1+
         if bpy.app.version < (4, 1):
-            meshpart.use_auto_smooth = True
+            mesh_part.use_auto_smooth = True
 
         # Setting is True by default on Blender 2.8+
         if bpy.app.version < (2, 8):
             # Blender 2.7x
-            meshpart.show_edge_sharp = True
+            mesh_part.show_edge_sharp = True
 
     @staticmethod
-    def setWeights(weights, remap, meshObj):
+    def set_weights(weights, remap, mesh_obj):
         for meshBoneIx, group in weights.items():
-            groupIx = remap[meshBoneIx]
-            groupId = "%03d" % groupIx if isinstance(groupIx, int) else str(groupIx)
-            groupName = "Bone.%s" % str(groupId)
+            group_ix = remap[meshBoneIx]
+            group_id = "%03d" % group_ix if isinstance(group_ix, int) else str(group_ix)
+            group_name = "Bone.%s" % str(group_id)
             for vertex, weight in group:
-                if groupName not in meshObj.vertex_groups:
-                    meshObj.vertex_groups.new(name=groupName)  #blenderObject Maybe?
-                meshObj.vertex_groups[groupName].add([vertex], weight, 'ADD')
+                if group_name not in mesh_obj.vertex_groups:
+                    mesh_obj.vertex_groups.new(name=group_name)  # blenderObject Maybe?
+                mesh_obj.vertex_groups[group_name].add([vertex], weight, 'ADD')
 
     @staticmethod
-    def maximizeClipping():
+    def maximize_clipping():
         for a in bpy.context.screen.areas:
             if a.type == 'VIEW_3D':
                 for s in a.spaces:
@@ -162,7 +177,7 @@ class FModImporter:
                         s.clip_end = 10 ** 4
 
     @staticmethod
-    def clearScene():
+    def clear_scene():
         for key in list(bpy.context.scene.keys()):
             del bpy.context.scene[key]
         bpy.ops.object.select_all(action='SELECT')
@@ -172,58 +187,55 @@ class FModImporter:
         return
 
     @staticmethod
-    def importTextures(materials, path, bmats):
-        def getTexture(ix):
-            filepath = FModImporter.search_textures(path, ix)
-            print(ix)
+    def import_textures(materials, path, blender_materials):
+        def get_texture(local_index):
+            filepath = FModImporter.search_textures(path, local_index)
+            print(local_index)
             print(filepath)
-            return FModImporter.fetchTexture(filepath)
+            return FModImporter.fetch_texture(filepath)
 
-        for ix, mat in bmats.items():
+        for ix, mat in blender_materials.items():
             # Setup
             mat.use_nodes = True
-            nodeTree = mat.node_tree
-            nodes = nodeTree.nodes
+            node_tree = mat.node_tree
+            nodes = node_tree.nodes
             for node in nodes:
                 nodes.remove(node)
             # Preamble
-            #ix = int(mat.name.split("-")[1])
-            diffuseIx = materials[ix].get_diffuse()
-            normalIx = materials[ix].get_normal()
-            specularIx = materials[ix].get_specular()
+            diffuse_ix = materials[ix].get_diffuse()
+            normal_ix = materials[ix].get_normal()
+            specular_ix = materials[ix].get_specular()
             # Construction        
-            setup = principled_setup(nodeTree)
+            setup = principled_setup(node_tree)
             next(setup)
-            if diffuseIx is not None:
-                diffuseNode = diffuse_setup(nodeTree, getTexture(diffuseIx))
-                setup.send(diffuseNode)
+            if diffuse_ix is not None:
+                diffuse_node = diffuse_setup(node_tree, get_texture(diffuse_ix))
+                setup.send(diffuse_node)
             else:
                 setup.send(None)
-            #setup.send(None)
-            if normalIx is not None:
-                normalNode = normal_setup(nodeTree, getTexture(normalIx))
-                setup.send(normalNode)
+
+            if normal_ix is not None:
+                normal_node = normal_setup(node_tree, get_texture(normal_ix))
+                setup.send(normal_node)
             else:
                 setup.send(None)
-            if specularIx is not None:
-                specularNode = specular_setup(nodeTree, getTexture(specularIx))
-                setup.send(specularNode)
+            if specular_ix is not None:
+                specular_node = specular_setup(node_tree, get_texture(specular_ix))
+                setup.send(specular_node)
             else:
                 setup.send(None)
-            finish_setup(nodeTree, next(setup))
-            #FModImporter.assignTexture(mesh, textureData)
-            #except:
-            #    pass            
+            finish_setup(node_tree, next(setup))
+            # Assign texture: FModImporter.assignTexture(mesh, textureData)
 
     @staticmethod
-    def assignTexture(meshObject, textureData):
-        for uvLayer in meshObject.data.uv_textures:
+    def assign_texture(mesh_object, texture_data):
+        for uvLayer in mesh_object.data.uv_textures:
             for uv_tex_face in uvLayer.data:
-                uv_tex_face.image = textureData
-        meshObject.data.update()
+                uv_tex_face.image = texture_data
+        mesh_object.data.update()
 
     @staticmethod
-    def fetchTexture(filepath):
+    def fetch_texture(filepath):
         if os.path.exists(filepath):
             return bpy.data.images.load(filepath)
         else:
@@ -231,6 +243,7 @@ class FModImporter:
 
     @staticmethod
     def search_textures(path, ix):
+        """Search for textures in the folder."""
         model_path = Path(path)
         candidates = [
             model_path.parent,

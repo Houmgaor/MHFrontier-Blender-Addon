@@ -36,6 +36,8 @@ def create_bone_tree(armature, anchor, parent_bone=None):
     :param armature: Armature to edit.
     :param anchor: Skeleton anchor (Blender object) to use
     :param parent_bone: Specify a parent bone (used for recursion)
+
+    :return: Root of the created bone tree
     """
     bone = armature.edit_bones.new(anchor.name)
     bone.head = Vector([0, 0, 0])
@@ -56,9 +58,10 @@ def create_bone_tree(armature, anchor, parent_bone=None):
 
 def create_armature():
     """Create armature from skeleton and parent to model."""
-    bone_anchors = [
-        o for o in bpy.context.scene.objects if o.type == "EMPTY" and o.parent is None
-    ]
+    bone_anchors = []
+    for scene_object in bpy.context.scene.objects:
+        if scene_object.type == "EMPTY" and scene_object.parent is None:
+            bone_anchors.append(scene_object)
     bpy.ops.object.select_all(action='DESELECT')
     blender_armature = bpy.data.armatures.new('Armature')
     arm_ob = bpy.data.objects.new('Armature', blender_armature)
@@ -94,12 +97,13 @@ def create_armature():
 
 
 class ConvertFSKL(Operator):
-    """Register the operator"""
+    """Register the Frontier Skeleton to Blender Armature operator."""
     bl_idname = "frontier_tools.convert_fskl"
     bl_label = "Convert FSKL to Armature"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
 
     @staticmethod
-    def execute(self, _context):
+    def execute(_context):
+        """Create the armature, _context is not used."""
         create_armature()
         return {'FINISHED'}

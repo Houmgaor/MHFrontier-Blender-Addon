@@ -45,12 +45,12 @@ except Exception as err:
 class FFaces:
     def __init__(self, face_block):
         self.Faces = []
-        for tristripArray in face_block.Data:
-            for tristrip in tristripArray.Data:
-                verts = tristrip.Data.vertices
+        for tris_trip_array in face_block.Data:
+            for tris_trip in tris_trip_array.Data:
+                vertices = tris_trip.Data.vertices
                 self.Faces += [
                     [v1.id, v2.id, v3.id][::((w + 1) % 2) * 2 - 1]
-                    for w, (v1, v2, v3) in enumerate(zip(verts[:-2], verts[1:-1], verts[2:]))
+                    for w, (v1, v2, v3) in enumerate(zip(vertices[:-2], vertices[1:-1], vertices[2:]))
                 ]
 
 
@@ -207,9 +207,9 @@ class FMesh:
     @staticmethod
     def calc_strip_lengths(face_block):
         lengths = []
-        for tristripArray in face_block.Data:
-            for tristrip in tristripArray.Data:
-                lengths.append(len(tristrip.Data.vertices) - 2)
+        for tris_trip_array in face_block.Data:
+            for tris_trip in tris_trip_array.Data:
+                lengths.append(len(tris_trip.Data.vertices) - 2)
         return lengths
 
     @staticmethod
@@ -253,8 +253,8 @@ class FMat:
 
 
 class FModel:
-    def __init__(self, FilePath):
-        with open(FilePath, "rb") as modelFile:
+    def __init__(self, file_path):
+        with open(file_path, "rb") as modelFile:
             frontier_file = FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
         meshes = frontier_file.Data[1].Data
