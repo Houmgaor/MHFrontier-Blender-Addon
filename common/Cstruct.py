@@ -8,6 +8,7 @@ import struct
 from collections import OrderedDict
 from binascii import hexlify
 
+
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
@@ -22,14 +23,11 @@ def HalfToFloat(h):
         return 0
     return (-1)**s*2**(e-15)*(f/(2**10)+1)
 
+
 def minifloatDeserialize(x):
     v = struct.unpack('H', x)
     return HalfToFloat(v[0])
-#   x = HalfToFloat(v[0])
-#    # hack to coerce int to float
-#    bstring = struct.pack('I',x)
-#    f=struct.unpack('f', bstring)
-#    return f[0]
+
 
 def minifloatSerialize(x):
     F16_EXPONENT_BITS = 0x1F

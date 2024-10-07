@@ -4,64 +4,61 @@ Created on Mon Dec 30 01:17:01 2019
 
 @author: AsteriskAmpersand
 """
-
-from ..fmod.FSkl import FSkeleton
 import bpy
 import bmesh
 import array
 import os
 from mathutils import Vector, Matrix
-from pathlib import Path
+
+from ..fmod.FSkl import FSkeleton
 
 
 class FSklImporter:
     @staticmethod
-    def execute(fmodPath):
-        skeleton = FSkeleton(fmodPath).skeletonStructure()
-        currentSkeleton = {}
-        o = bpy.data.objects.new("Armature", None)
-        try:
+    def execute(fmod_path):
+        skeleton = FSkeleton(fmod_path).skeleton_structure()
+        armature_object = bpy.data.objects.new("Armature", None)
+        if bpy.app.version >= (2, 8):
             # Blender 2.8+
-            bpy.context.collection.objects.link(o)
-        except ValueError:
+            bpy.context.collection.objects.link(armature_object)
+        else:
             # Blender <2.8
-            bpy.context.scene.objects.link(o)
-        #bpy.context.scene.update()
-        currentSkeleton = {"Armature": o}
+            bpy.context.scene.objects.link(armature_object)
+        current_skeleton = {"Armature": armature_object}
         for bone in skeleton.values():
-            FSklImporter.importBone(bone, currentSkeleton, skeleton)
+            FSklImporter.import_bone(bone, current_skeleton, skeleton)
 
     @staticmethod
-    def deserializePoseVector(vec4):
+    def deserialize_pose_vector(vec4):
         m = Matrix.Identity(4)
         for i in range(4):
             m[i][3] = vec4[i]
         return m
 
     @staticmethod
-    def importBone(bone, skeleton, skeletonStructure):
+    def import_bone(bone, skeleton, skeleton_structure):
         ix = bone.nodeID
         if "Bone.%03d" % ix in skeleton:
             return
-        o = bpy.data.objects.new("Bone.%03d" % ix, None)
-        skeleton["Bone.%03d" % ix] = o
-        try:
+        bone_object = bpy.data.objects.new("Bone.%03d" % ix, None)
+        skeleton["Bone.%03d" % ix] = bone_object
+        if bpy.app.version >= (2, 8):
             # Blender 2.8+
-            bpy.context.collection.objects.link(o)
-        except ValueError:
-            # Blender <2.8
-            bpy.context.scene.objects.link(o)
-        parentName = "Armature" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
-        if parentName not in skeleton:
-            FSklImporter.importBone(skeletonStructure[bone.parentID], skeleton, skeletonStructure)
-        o["id"] = bone.nodeID
-        o.parent = skeleton[parentName]        
-        o.matrix_local = FSklImporter.deserializePoseVector(bone.posVec)
-        o.show_wire = True
-        if hasattr(o, 'show_in_front'):
-            # Blender 2.8+
-            o.show_in_front = True
+            bpy.context.collection.objects.link(bone_object)
         else:
             # Blender <2.8
-            o.show_x_ray = True
-        o.show_bounds = True
+            bpy.context.scene.objects.link(bone_object)
+        parent_name = "Armature" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
+        if parent_name not in skeleton:
+            FSklImporter.import_bone(skeleton_structure[bone.parentID], skeleton, skeleton_structure)
+        bone_object["id"] = bone.nodeID
+        bone_object.parent = skeleton[parent_name]
+        bone_object.matrix_local = FSklImporter.deserialize_pose_vector(bone.posVec)
+        bone_object.show_wire = True
+        if bpy.app.version >= (2, 8):
+            # Blender 2.8+
+            bone_object.show_in_front = True
+        else:
+            # Blender <2.8
+            bone_object.show_x_ray = True
+        bone_object.show_bounds = True

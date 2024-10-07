@@ -20,7 +20,7 @@ bl_info = {
     "category": "Import-Export",
     "author": "AsteriskAmpersand (Code) & Vuze (Structure)",
     "location": "File > Import-Export > FMod/MHF",
-    "version": (1, 1, 0),
+    "version": (2, 0, 0),
     "blender": (2, 80, 0)
 }
 
@@ -29,12 +29,12 @@ def register():
     """Add the add-on."""
     bpy.utils.register_class(ImportFMOD)
     # New structure since Blender 2.8x
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
+    if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.append(mhf_model_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(mhf_model_menu_func_import)
     bpy.utils.register_class(ImportFSKL)
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
+    if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.append(mhf_skele_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(mhf_skele_menu_func_import)
@@ -45,12 +45,12 @@ def unregister():
     """Remove the add-on."""
     bpy.utils.unregister_class(ImportFMOD)
     # New structure since Blender 2.8x
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
+    if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.remove(mhf_model_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.remove(mhf_model_menu_func_import)
     bpy.utils.unregister_class(ImportFSKL)
-    if hasattr(bpy.types, 'TOPBAR_MT_file_import'):
+    if bpy.app.version >= (2, 8):
         bpy.types.TOPBAR_MT_file_import.remove(mhf_skele_menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.remove(mhf_skele_menu_func_import)

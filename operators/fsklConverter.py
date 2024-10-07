@@ -5,8 +5,8 @@ Created on Tue Aug 18 22:47:34 2020
 @author: AsteriskAmpersand
 """
 import bpy
-from mathutils import Vector, Matrix
 from bpy.types import Operator
+from mathutils import Vector, Matrix
 
 MACHINE_EPSILON = 2 ** -8
 
@@ -42,7 +42,7 @@ def create_bone_tree(armature, anchor, parent_bone=None):
     bone.tail = Vector([0, MACHINE_EPSILON, 0])  # Vector([0, 1, 0])
     if not parent_bone:
         parent_bone = DummyBone()  # matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
-    if bpy.app.version[0] >= 2 and bpy.app.version[1] >= 80:
+    if bpy.app.version >= (2, 8):
         bone.matrix = parent_bone.matrix @ anchor.matrix_local
     else:
         bone.matrix = parent_bone.matrix * anchor.matrix_local
@@ -62,7 +62,7 @@ def create_armature():
     bpy.ops.object.select_all(action='DESELECT')
     blender_armature = bpy.data.armatures.new('Armature')
     arm_ob = bpy.data.objects.new('Armature', blender_armature)
-    if bpy.app.version[0] >= 2 and bpy.app.version[1] >= 80:
+    if bpy.app.version >= (2, 8):
         bpy.context.collection.objects.link(arm_ob)
         bpy.context.view_layer.update()
         arm_ob.select_set(True)

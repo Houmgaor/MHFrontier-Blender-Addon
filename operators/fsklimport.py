@@ -8,6 +8,7 @@ import bpy
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
+
 from ..fmod import FSklImporterLayer
 
 
@@ -20,16 +21,16 @@ class ImportFSKL(Operator, ImportHelper):
     filename_ext = ".fskl"
     filter_glob = StringProperty(default="*.fskl", options={'HIDDEN'}, maxlen=255)
 
-    def execute(self, context):
+    def execute(self, _context):
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
-        except:
-            pass
+        except RuntimeError as error:
+            print(error)
         bpy.ops.object.select_all(action='DESELECT')
         importer = FSklImporterLayer.FSklImporter()
         importer.execute(self.properties.filepath)
         return {'FINISHED'}
     
     
-def menu_func_import(self, context):
+def menu_func_import(self, _context):
     self.layout.operator(ImportFSKL.bl_idname, text="MHF FSKL (.fskl)")

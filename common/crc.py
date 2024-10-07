@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Mar 12 01:10:56 2019
-
-@author: AsteriskAmpersand
-"""
-""" Base class for CRC and checksum classes.
+Base class for CRC and checksum classes.
 
   License::
 
@@ -23,6 +19,9 @@ Created on Tue Mar 12 01:10:56 2019
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+Created on Tue Mar 12 01:10:56 2019
+
+@author: AsteriskAmpersand
 """
 import math
 
@@ -73,11 +72,9 @@ def reflectbitorder(width, value):
     return int(binstr[::-1], 2)
 
 
-
 class CrccheckError(Exception):
     """General checksum error exception"""
     pass
-
 
 
 class CrccheckBase(object):
@@ -116,7 +113,6 @@ class CrccheckBase(object):
             self._value = value
         return self
 
-
     def process(self, data):
         """ Process given data.
 
@@ -127,7 +123,6 @@ class CrccheckBase(object):
                 self
         """
         return self
-
 
     def final(self):
         """Return final check value.
@@ -154,7 +149,6 @@ class CrccheckBase(object):
         except AttributeError:
             return "".join(["{:02x}".format(b) for b in asbytes])
 
-
     def finalbytes(self, byteorder='big'):
         """Return final checksum value as bytes.
            The internal state is not modified by this so further data can be processed afterwards.
@@ -175,7 +169,6 @@ class CrccheckBase(object):
                 asbytes.reverse()
             return asbytes
 
-
     def value(self):
         """Returns current intermediate value.
            Note that in general final() must be used to get the a final value.
@@ -184,7 +177,6 @@ class CrccheckBase(object):
                int: current value
         """
         return self._value
-
 
     @classmethod
     def calc(cls, data, initvalue=None, **kwargs):

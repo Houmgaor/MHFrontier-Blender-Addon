@@ -10,7 +10,7 @@ from collections import OrderedDict
 try:
     from ..common.Cstruct import PyCStruct
     from ..common.FileLike import FileLike
-except:
+except ModuleNotFoundError:
     import sys
 
     sys.path.insert(0, r'..\common')
@@ -18,26 +18,26 @@ except:
     from FileLike import FileLike
 
 
-class byte4(PyCStruct):
+class Byte4(PyCStruct):
     fields = OrderedDict([
         ("array", "byte[4]"),
     ])
 
 
-class uintField(PyCStruct):
+class UIntField(PyCStruct):
     fields = OrderedDict([
         ("id", "uint32"),
     ])
 
 
-class uv(PyCStruct):
+class UV(PyCStruct):
     fields = OrderedDict([
         ("u", "float"),
         ("v", "float"),
     ])
 
 
-class vect3(PyCStruct):
+class Vect3(PyCStruct):
     fields = OrderedDict([
         ("x", "float"),
         ("y", "float"),
@@ -45,11 +45,11 @@ class vect3(PyCStruct):
     ])
 
 
-position = vect3
-normal = vect3
+position = Vect3
+normal = Vect3
 
 
-class vect4(PyCStruct):
+class Vect4(PyCStruct):
     fields = OrderedDict([
         ("x", "float"),
         ("y", "float"),
@@ -58,49 +58,48 @@ class vect4(PyCStruct):
     ])
 
 
-tangent = vect4
+tangent = Vect4
 
 
-class vertexId(PyCStruct):
-    fields = OrderedDict([
-        ("id", "uint32"), ])
+class VertexId(PyCStruct):
+    fields = OrderedDict([("id", "uint32"), ])
 
 
-class tristrip(PyCStruct):
+class TrisTrip(PyCStruct):
     fields = OrderedDict([
         ("count", "uint32"),
     ])
 
     def marshall(self, data):
         super().marshall(data)
-        self.vertices = [vertexId() for i in range(self.count & 0xFFFFFFF)]
+        self.vertices = [VertexId() for i in range(self.count & 0xFFFFFFF)]
         [v.marshall(data) for v in self.vertices]
 
 
-class weight(PyCStruct):
+class Weight(PyCStruct):
     fields = OrderedDict([
         ("boneID", "uint32"),
         ("weightValue", "float"),
     ])
 
 
-class weightData(PyCStruct):
+class WeightData(PyCStruct):
     fields = OrderedDict([
         ("count", "uint32"),
     ])
 
     def marshall(self, data):
         super().marshall(data)
-        self.weights = [weight() for i in range(self.count)]
+        self.weights = [Weight() for i in range(self.count)]
         [w.marshall(data) for w in self.weights]
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         # name = type(self).__name__
         # print(base+name)
         pass
 
 
-class boneBlock(PyCStruct):
+class BoneBlock(PyCStruct):
     fields = OrderedDict([
         ("nodeID", "int32"),
         ("parentID", "int32"),
@@ -115,7 +114,7 @@ class boneBlock(PyCStruct):
     ])
 
 
-class textureData(PyCStruct):
+class TextureData(PyCStruct):
     fields = OrderedDict([
         ("imageID", "uint32"),
         ("width", "uint32"),
@@ -140,20 +139,20 @@ class FBlock:
     def marshall(self, data):
         self.Header.marshall(data)
         subData = FileLike(data.read(self.Header.size - len(self.Header)))
-        self.Data = [self.getType() for _ in range(self.Header.count)]
+        self.Data = [self.get_type() for _ in range(self.Header.count)]
         [datum.marshall(subData) for datum in self.Data]
 
-    def prettyPrint(self, base=""):
-        name = type(self.getType()).__name__
+    def pretty_print(self, base=""):
+        name = type(self.get_type()).__name__
         print(base + name + ":" + " " + str(self.Header.count) + " \t" + hex(self.Header.type))
         for datum in self.Data:
-            datum.prettyPrint(base + "\t")
+            datum.pretty_print(base + "\t")
 
-    def getType(self):
-        return self.typeLookup(self.Header.type)()
+    def get_type(self):
+        return self.type_lookup(self.Header.type)()
 
     @staticmethod
-    def typeLookup(value):
+    def type_lookup(value):
         types = {
             0x00020000: InitBlock,
             0x00000001: FileBlock,
@@ -163,17 +162,17 @@ class FBlock:
             0x00000009: MaterialBlock,
             0x0000000A: TextureBlock,
             0xC0000000: SkeletonBlock,
-            0x40000001: boneBlock,
-            0x00030000: trisStripsData,
-            0x00040000: trisStripsData,
-            0x00050000: materialList,
-            0x00060000: materialMap,
-            0x00070000: vertexData,
-            0x00080000: normalsData,
-            0x000A0000: uvData,
-            0x000B0000: rgbData,
-            0x000C0000: weightData,
-            0x00100000: boneMapData,
+            0x40000001: BoneBlock,
+            0x00030000: TrisStripsData,
+            0x00040000: TrisStripsData,
+            0x00050000: MaterialList,
+            0x00060000: MaterialMap,
+            0x00070000: VertexData,
+            0x00080000: NormalsData,
+            0x000A0000: UVData,
+            0x000B0000: RGBData,
+            0x000C0000: WeightData,
+            0x00100000: BoneMapData,
         }
         return types[value] if value in types else UnknBlock
 
@@ -199,14 +198,14 @@ class SkeletonBlock(FBlock):
 
 
 class SimpleFBlock(FBlock):
-    def getType(self):
+    def get_type(self):
         return self.ftype()
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         pass
 
 
-class materialHeader(PyCStruct):
+class MaterialHeader(PyCStruct):
     fields = OrderedDict([
         ("unkn1", "uint32"),
         ("unkn2", "uint32"),
@@ -242,11 +241,11 @@ class materialChannelMapping(PyCStruct):
         super().__init__()
 
 
-class textureIndex(PyCStruct):
+class TextureIndex(PyCStruct):
     fields = OrderedDict([("index", "uint32")])
 
 
-class materialData(PyCStruct):
+class MaterialData(PyCStruct):
     fields = OrderedDict([
         # ("unkn1" , "uint32"),
         # ("unkn2" , "uint32"),
@@ -265,7 +264,7 @@ class materialData(PyCStruct):
         # print()
         # for prop in self.fields:
         #    print("%s: %s"%(prop,getattr(self,prop)))
-        self.textureIndices = [textureIndex() for i in range(self.textureCount)]
+        self.textureIndices = [TextureIndex() for i in range(self.textureCount)]
         list(map(lambda x: x.marshall(data), self.textureIndices))
 
     """
@@ -278,11 +277,11 @@ class materialData(PyCStruct):
 
 
 class TextureBlock(SimpleFBlock):
-    ftype = textureData
+    ftype = TextureData
 
 
 class MaterialBlock(SimpleFBlock):
-    ftype = materialData
+    ftype = MaterialData
 
 
 class InitData(PyCStruct):
@@ -294,7 +293,7 @@ class InitBlock(FBlock):
         self.Data = InitData()
         self.Data.marshall(data)
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         pass
 
 
@@ -302,52 +301,52 @@ class UnknBlock(FBlock):
     def marshall(self, data):
         self.Data = data
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         pass
 
 
-class dataContainer:
+class DataContainer:
     def marshall(self, data):
         self.Data = self.dataType()
         self.Data.marshall(data)
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         # name = type(self).__name__
         # print(base+name)
         pass
 
 
-class trisStripsData(dataContainer):
-    dataType = tristrip
+class TrisStripsData(DataContainer):
+    dataType = TrisTrip
 
 
-class byteArrayData(dataContainer):
-    dataType = byte4
+class ByteArrayData(DataContainer):
+    dataType = Byte4
 
 
-class materialList(dataContainer):
-    dataType = uintField
+class MaterialList(DataContainer):
+    dataType = UIntField
 
 
-class materialMap(dataContainer):
-    dataType = uintField
+class MaterialMap(DataContainer):
+    dataType = UIntField
 
 
-class boneMapData(dataContainer):
-    dataType = uintField
+class BoneMapData(DataContainer):
+    dataType = UIntField
 
 
-class vertexData(dataContainer):
+class VertexData(DataContainer):
     dataType = position
 
 
-class normalsData(dataContainer):
+class NormalsData(DataContainer):
     dataType = normal
 
 
-class uvData(dataContainer):
-    dataType = uv
+class UVData(DataContainer):
+    dataType = UV
 
 
-class rgbData(dataContainer):
-    dataType = vect4
+class RGBData(DataContainer):
+    dataType = Vect4

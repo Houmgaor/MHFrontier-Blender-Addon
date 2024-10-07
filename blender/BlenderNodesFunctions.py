@@ -7,179 +7,170 @@ Created on Mon Dec  2 00:15:34 2019
 import bpy
 
 
-def setLocation(node,location):
-    x,y = location
-    node.location = (x-14)*100,-y*100
+def set_location(node, location):
+    x, y = location
+    node.location = (x - 14) * 100, -y * 100
 
 
-#setup scheme from https://i.stack.imgur.com/cdRIK.png
-def createTexNode(nodeTree, color, texture, name):
-    baseType = "ShaderNodeTexImage"
-    node = nodeTree.nodes.new(type=baseType)
-    if hasattr(node, 'color_space'):
-        # Blender <2.8
-        node.color_space = color
-        node.image = texture
-    else:
+def create_tex_node(node_tree, color, texture, name):
+    """
+    setup scheme from https://i.stack.imgur.com/cdRIK.png
+    """
+    base_type = "ShaderNodeTexImage"
+    node = node_tree.nodes.new(type=base_type)
+    if bpy.app.version >= (2, 8):
         # Blender 2.8
         node.image = texture
         node.image.colorspace_settings.is_data = color == "NONE"
+    else:
+        # Blender <2.8
+        node.color_space = color
+        node.image = texture
     node.name = name
     return node
 
 
-def materialSetup(blenderObj,*args):
-    matName = blenderObj.data["material"].replace("\x00","") if "material" in blenderObj.data else "RenderMaterial"
+def material_setup(blender_obj, *_args):
+    if "material" in blender_obj.data:
+        mat_name = blender_obj.data["material"].replace("\x00", "")
+    else:
+        mat_name = "RenderMaterial"
     bpy.context.scene.render.engine = 'CYCLES'
-    if matName in bpy.data.materials:
-        blenderObj.data.materials.append(bpy.data.materials[matName])
+    if mat_name in bpy.data.materials:
+        blender_obj.data.materials.append(bpy.data.materials[mat_name])
         return None
-    mat = bpy.data.materials.new(name=matName)
-    blenderObj.data.materials.append(mat)
-    mat.use_nodes=True
+    mat = bpy.data.materials.new(name=mat_name)
+    blender_obj.data.materials.append(mat)
+    mat.use_nodes = True
     nodes = mat.node_tree.nodes
     for node in nodes:
         nodes.remove(node)
     return mat.node_tree
 
 
-def principledSetup(nodeTree):
-    bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfPrincipled")
-    setLocation(bsdfNode,(6,0))
-    bsdfNode.name = "Principled BSDF"
-    endNode = bsdfNode
-    diffuseNode = yield
-    if diffuseNode:
-        transparentNode = nodeTree.nodes.new(type="ShaderNodeBsdfTransparent")
-        setLocation(transparentNode,(6,7))
-        alphaMixerNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
-        setLocation(alphaMixerNode,(10,1))
-        nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
-        nodeTree.links.new(diffuseNode.outputs[1],alphaMixerNode.inputs[0])
-        nodeTree.links.new(transparentNode.outputs[0],alphaMixerNode.inputs[1])
-        
-        nodeTree.links.new(endNode.outputs[0],alphaMixerNode.inputs[2])
-        
-        endNode = alphaMixerNode
-    normalNode = yield
-    if normalNode:
-        nodeTree.links.new(normalNode.outputs[0],bsdfNode.inputs["Normal"])
-    specularNode = yield
-    if specularNode:
-        nodeTree.links.new(specularNode.outputs[0],bsdfNode.inputs["Specular"])
+def principled_setup(node_tree):
+    bsdf_node = node_tree.nodes.new(type="ShaderNodeBsdfPrincipled")
+    set_location(bsdf_node, (6, 0))
+    bsdf_node.name = "Principled BSDF"
+    end_node = bsdf_node
+    diffuse_node = yield
+    if diffuse_node:
+        transparent_node = node_tree.nodes.new(type="ShaderNodeBsdfTransparent")
+        set_location(transparent_node, (6, 7))
+        alpha_mixer_node = node_tree.nodes.new(type="ShaderNodeMixShader")
+        set_location(alpha_mixer_node, (10, 1))
+        node_tree.links.new(diffuse_node.outputs[0], bsdf_node.inputs[0])
+        node_tree.links.new(diffuse_node.outputs[1], alpha_mixer_node.inputs[0])
+        node_tree.links.new(transparent_node.outputs[0], alpha_mixer_node.inputs[1])
+
+        node_tree.links.new(end_node.outputs[0], alpha_mixer_node.inputs[2])
+
+        end_node = alpha_mixer_node
+    normal_node = yield
+    if normal_node:
+        node_tree.links.new(normal_node.outputs[0], bsdf_node.inputs["Normal"])
+    specular_node = yield
+    if specular_node:
+        node_tree.links.new(specular_node.outputs[0], bsdf_node.inputs["Specular"])
     yield
-    yield endNode
+    yield end_node
 
 
-def diffuseSetup(nodeTree, texture, *args):
-    #Create DiffuseTexture
-    diffuseNode = createTexNode(nodeTree, "COLOR", texture, "Diffuse Texture")
-    setLocation(diffuseNode, (0, 0))
-    #Create DiffuseBSDF
-    #bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfDiffuse")
-    #bsdfNode.name = "Diffuse BSDF"          
-    #Plug Diffuse Texture to BDSF (color -> color)
-    #nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
-    return diffuseNode
+def diffuse_setup(node_tree, texture, *_args):
+    """Create DiffuseTexture"""
+    diffuse_node = create_tex_node(node_tree, "COLOR", texture, "Diffuse Texture")
+    set_location(diffuse_node, (0, 0))
+    return diffuse_node
 
 
-def normalSetup(nodeTree,texture,*args):
-    #Create NormalMapData
-    normalNode = createTexNode(nodeTree,"NONE",texture,"Normal Texture")
-    setLocation(normalNode,(0,6))
-    #Create NormalMapNode
-    normalmapNode = nodeTree.nodes.new(type="ShaderNodeNormalMap")
-    normalmapNode.name = "Normal Map"
-    setLocation(normalmapNode,(4,6))
-    #Plug Normal Data to Node (color -> color)
-    nodeTree.links.new(normalNode.outputs[0],normalmapNode.inputs[1])
-    return normalmapNode
+def normal_setup(node_tree, texture, *_args):
+    """Create NormalMapData"""
+    normal_node = create_tex_node(node_tree, "NONE", texture, "Normal Texture")
+    set_location(normal_node, (0, 6))
+    # Create NormalMapNode
+    normalmap_node = node_tree.nodes.new(type="ShaderNodeNormalMap")
+    normalmap_node.name = "Normal Map"
+    set_location(normalmap_node, (4, 6))
+    # Plug Normal Data to Node (color -> color)
+    node_tree.links.new(normal_node.outputs[0], normalmap_node.inputs[1])
+    return normalmap_node
 
 
-def specularSetup(nodeTree,texture,*args):
-    #Create SpecularityMaterial
-    specularNode = createTexNode(nodeTree,"NONE",texture,"Specular Texture")
-    setLocation(specularNode,(0,3))
-    #Create RGB Curves
-    curveNode = nodeTree.nodes.new(type="ShaderNodeRGBCurve")
-    curveNode.name = "Specular Curve"
-    setLocation(curveNode,(2,1))
-    #Plug Specularity Color to RGB Curves (color -> color)
-    nodeTree.links.new(specularNode.outputs[0],curveNode.inputs[0])
-    return curveNode
+def specular_setup(node_tree, texture, *_args):
+    """Create SpecularityMaterial"""
+    specular_node = create_tex_node(node_tree, "NONE", texture, "Specular Texture")
+    set_location(specular_node, (0, 3))
+    # Create RGB Curves
+    curve_node = node_tree.nodes.new(type="ShaderNodeRGBCurve")
+    curve_node.name = "Specular Curve"
+    set_location(curve_node, (2, 1))
+    # Plug Specularity Color to RGB Curves (color -> color)
+    node_tree.links.new(specular_node.outputs[0], curve_node.inputs[0])
+    return curve_node
 
 
-def emissionSetup(nodeTree,texture,*args):
-    return "" #Commented out, it's not really possible to work withit without the parameters
-    #Create EmissionMap
-    emissionNode = createTexNode(nodeTree,"NONE",texture,"Emission Texture")
-    #Create Emission
-    emissionMap = nodeTree.nodes.new(type="ShaderNodeEmission")
-    emissionMap.name = "Emission Map"
-    #Create Separate HSV
-    brightnessMap = nodeTree.nodes.new(type="ShaderNodeSeparateHSV")
-    brightnessMap.name = "Emission Brightness"
-    #Plug the base emission to the node
-    nodeTree.links.new(emissionNode.outputs[0],emissionMap.inputs[0])
-    #Get Valuation as a Strength Map
-    nodeTree.links.new(emissionNode.outputs[0],brightnessMap.inputs[0])
-    nodeTree.links.new(brightnessMap.outputs[2],emissionMap.inputs[1])
-    return emissionMap
+def emission_setup(_node_tree, _texture, *_args):
+    """Commented out, it's not really possible to work withit without the parameters"""
+    return ""
 
 
-#setup scheme from https://i.stack.imgur.com/TdK1W.png + https://i.stack.imgur.com/40vbG.jpg
-def rmtSetup(nodeTree,texture,*args):
-    #Create RMTMap
-    rmtNode = createTexNode(nodeTree,"COLOR",texture,"RMT Texture")
-    setLocation(rmtNode,(0,3))
+def rmt_setup(node_tree, texture, *_args):
+    """
+    Create RMTMap.
+
+    setup scheme from https://i.stack.imgur.com/TdK1W.png +
+    https://i.stack.imgur.com/40vbG.jpg
+    """
+    rmtNode = create_tex_node(node_tree, "COLOR", texture, "RMT Texture")
+    set_location(rmtNode, (0, 3))
     #Create Separate RGB
-    splitterNode = nodeTree.nodes.new(type="ShaderNodeSeparateRGB")
+    splitterNode = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
     splitterNode.name = "RMT Splitter"
-    setLocation(splitterNode,(2,1))
+    set_location(splitterNode, (2, 1))
     #Create Metallicness
     #Create Roughness - Create InvertNode
-    inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
+    inverterNode = node_tree.nodes.new(type="ShaderNodeInvert")
     inverterNode.name = "Roughness Inverter"
-    setLocation(inverterNode,(4,2))
+    set_location(inverterNode, (4, 2))
     #Tex To Splitter
-    nodeTree.links.new(rmtNode.outputs[0],splitterNode.inputs[0])
+    node_tree.links.new(rmtNode.outputs[0], splitterNode.inputs[0])
     #Splitter to Inverter
-    nodeTree.links.new(splitterNode.outputs[0],inverterNode.inputs[0])
-    return inverterNode,splitterNode,rmtNode
+    node_tree.links.new(splitterNode.outputs[0], inverterNode.inputs[0])
+    return inverterNode, splitterNode, rmtNode
 
 
-def furSetup(nodeTree,texture,*args):
-    #TODO - Actually Finish This 
-    #Create FMMap
-    fmNode = createTexNode(nodeTree,"COLOR",texture,"FM Texture")
-    #Separate RGB
-    splitterNode = nodeTree.nodes.new(type="ShaderNodeSeparateRGB")
+def fur_setup(node_tree, texture, *_args):
+    # TODO - Actually Finish This
+    # Create FMMap
+    fmNode = create_tex_node(node_tree, "COLOR", texture, "FM Texture")
+    # Separate RGB
+    splitterNode = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
     splitterNode.name = "FM Splitter"
-    nodeTree.links.new(fmNode.outputs[0],splitterNode.inputs[0])
-    #Create Input
-    inputNode = nodeTree.nodes.new(type="NodeReroute")
+    node_tree.links.new(fmNode.outputs[0], splitterNode.inputs[0])
+    # Create Input
+    inputNode = node_tree.nodes.new(type="NodeReroute")
     inputNode.name = "Reroute Node"
-    #Create Roughness - Create InvertNode
-    inverterNode = nodeTree.nodes.new(type="ShaderNodeInvert")
+    # Create Roughness - Create InvertNode
+    inverterNode = node_tree.nodes.new(type="ShaderNodeInvert")
     inverterNode.name = "Fur Inverter"
-    nodeTree.links.new(splitterNode.outputs[1],inverterNode.inputs[1])
-    #Create HairBSDF
-    transmissionNode = nodeTree.nodes.new(type="ShaderNodeHairBSDF")
-    transmissionNode.component = "TRANSMISSION"
-    reflectionNode = nodeTree.nodes.new(type="ShaderNodeHairBSDF")
+    node_tree.links.new(splitterNode.outputs[1], inverterNode.inputs[1])
+    # Create HairBSDF
+    transmission_node = node_tree.nodes.new(type="ShaderNodeHairBSDF")
+    transmission_node.component = "TRANSMISSION"
+    reflectionNode = node_tree.nodes.new(type="ShaderNodeHairBSDF")
     reflectionNode.component = "REFLECTION"
-    for targetNode in [transmissionNode,reflectionNode]:
-        nodeTree.links.new(inputNode.outputs[0],targetNode.inputs[0])
-        nodeTree.links.new(splitterNode.outputs[0],targetNode.inputs[1])
-        nodeTree.links.new(splitterNode.outputs[1],targetNode.inputs[2])
-        nodeTree.links.new(inverterNode.outputs[0],targetNode.inputs[3])
-    hairNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
-    nodeTree.links.new(transmissionNode.outputs[0],hairNode.inputs[1])
-    nodeTree.links.new(reflectionNode.outputs[0],hairNode.inputs[2])
-    return 
-    
+    for targetNode in [transmission_node, reflectionNode]:
+        node_tree.links.new(inputNode.outputs[0], targetNode.inputs[0])
+        node_tree.links.new(splitterNode.outputs[0], targetNode.inputs[1])
+        node_tree.links.new(splitterNode.outputs[1], targetNode.inputs[2])
+        node_tree.links.new(inverterNode.outputs[0], targetNode.inputs[3])
+    hairNode = node_tree.nodes.new(type="ShaderNodeMixShader")
+    node_tree.links.new(transmission_node.outputs[0], hairNode.inputs[1])
+    node_tree.links.new(reflectionNode.outputs[0], hairNode.inputs[2])
+    return
 
-def finishSetup(nodeTree, endNode):
-    outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
-    nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])
+
+def finish_setup(node_tree, end_node):
+    output_node = node_tree.nodes.new(type="ShaderNodeOutputMaterial")
+    node_tree.links.new(end_node.outputs[0], output_node.inputs[0])
     return

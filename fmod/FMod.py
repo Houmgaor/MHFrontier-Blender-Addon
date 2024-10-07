@@ -11,14 +11,14 @@ try:
     from ..fmod.FBlock import FBlock
     from ..fmod.FBlock import (
         FaceBlock,
-        materialList,
-        materialMap,
-        vertexData,
-        normalsData,
-        uvData,
-        rgbData,
-        weightData,
-        boneMapData,
+        MaterialList,
+        MaterialMap,
+        VertexData,
+        NormalsData,
+        UVData,
+        RGBData,
+        WeightData,
+        BoneMapData,
     )
     from ..common.FileLike import FileLike
 except Exception as err:
@@ -30,22 +30,22 @@ except Exception as err:
     from FBlock import FBlock
     from FBlock import (
         FaceBlock,
-        materialList,
-        materialMap,
-        vertexData,
-        normalsData,
-        uvData,
-        rgbData,
-        weightData,
-        boneMapData,
+        MaterialList,
+        MaterialMap,
+        VertexData,
+        NormalsData,
+        UVData,
+        RGBData,
+        WeightData,
+        BoneMapData,
     )
     from FileLike import FileLike
 
 
 class FFaces:
-    def __init__(self, FaceBlock):
+    def __init__(self, face_block):
         self.Faces = []
-        for tristripArray in FaceBlock.Data:
+        for tristripArray in face_block.Data:
             for tristrip in tristripArray.Data:
                 verts = tristrip.Data.vertices
                 self.Faces += [
@@ -55,39 +55,39 @@ class FFaces:
 
 
 class FUnkSing:
-    def __init__(self, _UnknownSingularBlock):
+    def __init__(self, _unknown_singular_block):
         pass
 
 
 class FTriData:
-    def __init__(self, FaceDataBlock):
-        self.Data = [faceElement.Data for faceElement in FaceDataBlock.Data]
+    def __init__(self, face_data_block):
+        self.Data = [faceElement.Data for faceElement in face_data_block.Data]
 
 
 class FVertices:
-    def __init__(self, VertexBlock):
-        self.Vertices = [(Vertex.Data.x, Vertex.Data.y, Vertex.Data.z) for Vertex in VertexBlock.Data]
+    def __init__(self, vertex_block):
+        self.Vertices = [(Vertex.Data.x, Vertex.Data.y, Vertex.Data.z) for Vertex in vertex_block.Data]
 
 
 class FNormals:
-    def __init__(self, NormalsBlock):
-        self.Normals = [[Normal.Data.x, Normal.Data.y, Normal.Data.z] for Normal in NormalsBlock.Data]
+    def __init__(self, normals_block):
+        self.Normals = [[Normal.Data.x, Normal.Data.y, Normal.Data.z] for Normal in normals_block.Data]
 
 
 class FUVs:
-    def __init__(self, UVBlock):
-        self.UVs = [[UV.Data.u, 1 - UV.Data.v] for UV in UVBlock.Data]
+    def __init__(self, uv_block):
+        self.UVs = [[UV.Data.u, 1 - UV.Data.v] for UV in uv_block.Data]
 
 
 class FRGB:
-    def __init__(self, RGBBlock):
-        self.RGB = [[rgb.Data.x, rgb.Data.y, rgb.Data.z, rgb.Data.w] for rgb in RGBBlock.Data]
+    def __init__(self, rgb_block):
+        self.RGB = [[rgb.Data.x, rgb.Data.y, rgb.Data.z, rgb.Data.w] for rgb in rgb_block.Data]
 
 
 class FWeights:
-    def __init__(self, WeightsBlock):
+    def __init__(self, weights_block):
         groups = {}
-        for vertID, weights in enumerate(WeightsBlock.Data):
+        for vertID, weights in enumerate(weights_block.Data):
             for weight in weights.weights:
                 if weight.boneID not in groups:
                     groups[weight.boneID] = []
@@ -96,9 +96,9 @@ class FWeights:
 
 
 class FRemap:
-    def __init__(self, RemapBlock):
+    def __init__(self, remap_block):
         self.remapTable = []
-        for ID in RemapBlock.Data:
+        for ID in remap_block.Data:
             self.remapTable.append(ID.Data.id)
 
     def __getitem__(self, key):
@@ -157,64 +157,69 @@ class DummyWeight:
 
 
 class FMesh:
-    def __init__(self, ObjectBlock):
+    def __init__(self, object_block):
         self.UVs = DummyUVs()
         self.BoneRemap = DummyRemap()
         self.MaterialList = DummyMaterialsIndices()
         self.MaterialMap = DummyFaceMaterials()
         self.Weights = DummyWeight()
-        Objects = ObjectBlock.Data
+        objects = object_block.Data
         attributes = {
-            FaceBlock: "Faces", materialList: "MaterialList",
-            materialMap: "MaterialMap", vertexData: "Vertices",
-            normalsData: "Normals", uvData: "UVs",
-            rgbData: "RGBLike", weightData: "Weights",
-            boneMapData: "BoneRemap"
+            FaceBlock: "Faces", MaterialList: "MaterialList",
+            MaterialMap: "MaterialMap", VertexData: "Vertices",
+            NormalsData: "Normals", UVData: "UVs",
+            RGBData: "RGBLike", WeightData: "Weights",
+            BoneMapData: "BoneRemap"
         }  # ,UnknBlock:"UnknBlock"}
-        typeData = {
-            FaceBlock: FFaces, materialList: FMatRemapList,
-            materialMap: FMatPerTri, vertexData: FVertices,
-            normalsData: FNormals, uvData: FUVs,
-            rgbData: FRGB, weightData: FWeights,
-            boneMapData: FBoneRemap
+        type_data = {
+            FaceBlock: FFaces, MaterialList: FMatRemapList,
+            MaterialMap: FMatPerTri, VertexData: FVertices,
+            NormalsData: FNormals, UVData: FUVs,
+            RGBData: FRGB, WeightData: FWeights,
+            BoneMapData: FBoneRemap
         }  # ,UnknBlock:"UnknBlock"}
-        for objectBlock in Objects:
-            typing = FBlock.typeLookup(objectBlock.Header.type)
+        for objectBlock in objects:
+            typing = FBlock.type_lookup(objectBlock.Header.type)
             if typing in attributes:
-                setattr(self, attributes[typing], typeData[typing](objectBlock))
+                setattr(self, attributes[typing], type_data[typing](objectBlock))
             if typing is FaceBlock:
-                tristripRepetition = self.calcStripLengths(objectBlock)
+                tristrip_repetition = self.calc_strip_lengths(objectBlock)
         if hasattr(self, "MaterialMap"):
-            self.MaterialMap = self.decomposeMaterialList(self.MaterialMap, tristripRepetition)
+            # Not sure if the condition is necessary
+            self.MaterialMap = self.decompose_material_list(self.MaterialMap, tristrip_repetition)
+
         """
-        self.Faces = FFaces(next(Objects))
-        self.MaterialList = FMatList(next(Objects))#Material List
-        self.MaterialMap = FMatPerTri(next(Objects))#Material Map
-        self.Vertices = FVertices(next(Objects))
-        self.Normals = FNormals(next(Objects))
-        self.UVs = FUVs(next(Objects))
-        self.RGBLike = FRGB(next(Objects))
-        self.Weights = FWeights(next(Objects))
-        self.BoneRemap = FBoneRemap(next(Objects))
-        """
+        # Automatically assigns the map data.
+        
+        self.Faces = FFaces(next(objects))
+        self.MaterialList = FMatList(next(objects))  # Material List
+        self.MaterialMap = FMatPerTri(next(objects))  # Material Map
+        self.Vertices = FVertices(next(objects))
+        self.Normals = FNormals(next(objects))
+        self.UVs = FUVs(next(objects))
+        self.RGBLike = FRGB(next(objects))
+        self.Weights = FWeights(next(objects))
+        self.BoneRemap = FBoneRemap(next(objects))
         # unknownBlock
+        
+        """
 
     @staticmethod
-    def calcStripLengths(faceBlock):
+    def calc_strip_lengths(face_block):
         lengths = []
-        for tristripArray in faceBlock.Data:
+        for tristripArray in face_block.Data:
             for tristrip in tristripArray.Data:
                 lengths.append(len(tristrip.Data.vertices) - 2)
         return lengths
 
     @staticmethod
-    def decomposeMaterialList(materialList, triStripCounts):
-        materialArray = []
-        for m, tlen in zip(materialList, triStripCounts):
-            materialArray += [m] * tlen
-        return materialArray
+    def decompose_material_list(material_list, tri_strip_counts):
+        material_array = []
+        for m, tlen in zip(material_list, tri_strip_counts):
+            material_array += [m] * tlen
+        return material_array
 
-    def traditionalMeshStructure(self):
+    def traditional_mesh_structure(self):
         if isinstance(self.UVs, DummyUVs):
             # An actual fix is missing
             warnings.warn("No UV data found in this file. Texture won't be rendered.")
@@ -231,33 +236,33 @@ class FMesh:
 
 
 class FMat:
-    def __init__(self, MatBlock, Textures):
+    def __init__(self, mat_block, textures):
         # print(len(MatBlock.Data[0].textureIndices))
-        self.textureIndices = [Textures[ix.index].Data[0].imageID for ix in MatBlock.Data[0].textureIndices]
+        self.textureIndices = [textures[ix.index].Data[0].imageID for ix in mat_block.Data[0].textureIndices]
 
-    def getDiffuse(self):
+    def get_diffuse(self):
         # print(len(self.textureIndices))
         # (self.textureIndices)
         return self.textureIndices[0] if len(self.textureIndices) >= 1 else None
 
-    def getNormal(self):
+    def get_normal(self):
         return self.textureIndices[1] if len(self.textureIndices) >= 2 else None
 
-    def getSpecular(self):
+    def get_specular(self):
         return self.textureIndices[2] if len(self.textureIndices) >= 3 else None
 
 
 class FModel:
     def __init__(self, FilePath):
         with open(FilePath, "rb") as modelFile:
-            frontierFile = FBlock()
-            frontierFile.marshall(FileLike(modelFile.read()))
-        Meshes = frontierFile.Data[1].Data
-        Materials = frontierFile.Data[2].Data
-        Textures = frontierFile.Data[3].Data
-        self.Meshparts = [FMesh(Mesh) for Mesh in Meshes]
-        self.Materials = [FMat(Material, Textures) for Material in Materials]
-        frontierFile.prettyPrint()
+            frontier_file = FBlock()
+            frontier_file.marshall(FileLike(modelFile.read()))
+        meshes = frontier_file.Data[1].Data
+        materials = frontier_file.Data[2].Data
+        textures = frontier_file.Data[3].Data
+        self.Meshparts = [FMesh(Mesh) for Mesh in meshes]
+        self.Materials = [FMat(Material, textures) for Material in materials]
+        frontier_file.pretty_print()
 
-    def traditionalMeshStructure(self):
-        return [mesh.traditionalMeshStructure() for mesh in self.Meshparts]
+    def traditional_mesh_structure(self):
+        return [mesh.traditional_mesh_structure() for mesh in self.Meshparts]
