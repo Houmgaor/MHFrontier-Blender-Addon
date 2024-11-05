@@ -22,11 +22,14 @@ try:
     )
     from ..common.FileLike import FileLike
 except ModuleNotFoundError as err:
-    print("Cannot import modules in normal mode, fallback to local folder search. Error:", err)
+    print(
+        "Cannot import modules in normal mode, fallback to local folder search. Error:",
+        err,
+    )
     import sys
 
-    sys.path.insert(0, r'..\common')
-    sys.path.insert(0, r'..\fmod')
+    sys.path.insert(0, r"..\common")
+    sys.path.insert(0, r"..\fmod")
     from FBlock import FBlock
     from FBlock import (
         FaceBlock,
@@ -49,8 +52,10 @@ class FFaces:
             for tris_trip in tris_trip_array.Data:
                 vertices = tris_trip.Data.vertices
                 self.Faces += [
-                    [v1.id, v2.id, v3.id][::((w + 1) % 2) * 2 - 1]
-                    for w, (v1, v2, v3) in enumerate(zip(vertices[:-2], vertices[1:-1], vertices[2:]))
+                    [v1.id, v2.id, v3.id][:: ((w + 1) % 2) * 2 - 1]
+                    for w, (v1, v2, v3) in enumerate(
+                        zip(vertices[:-2], vertices[1:-1], vertices[2:])
+                    )
                 ]
 
 
@@ -66,12 +71,18 @@ class FTriData:
 
 class FVertices:
     def __init__(self, vertex_block):
-        self.Vertices = [(Vertex.Data.x, Vertex.Data.y, Vertex.Data.z) for Vertex in vertex_block.Data]
+        self.Vertices = [
+            (Vertex.Data.x, Vertex.Data.y, Vertex.Data.z)
+            for Vertex in vertex_block.Data
+        ]
 
 
 class FNormals:
     def __init__(self, normals_block):
-        self.Normals = [[Normal.Data.x, Normal.Data.y, Normal.Data.z] for Normal in normals_block.Data]
+        self.Normals = [
+            [Normal.Data.x, Normal.Data.y, Normal.Data.z]
+            for Normal in normals_block.Data
+        ]
 
 
 class FUVs:
@@ -81,7 +92,9 @@ class FUVs:
 
 class FRGB:
     def __init__(self, rgb_block):
-        self.RGB = [[rgb.Data.x, rgb.Data.y, rgb.Data.z, rgb.Data.w] for rgb in rgb_block.Data]
+        self.RGB = [
+            [rgb.Data.x, rgb.Data.y, rgb.Data.z, rgb.Data.w] for rgb in rgb_block.Data
+        ]
 
 
 class FWeights:
@@ -165,18 +178,26 @@ class FMesh:
         self.Weights = DummyWeight()
         objects = object_block.Data
         attributes = {
-            FaceBlock: "Faces", MaterialList: "MaterialList",
-            MaterialMap: "MaterialMap", VertexData: "Vertices",
-            NormalsData: "Normals", UVData: "UVs",
-            RGBData: "RGBLike", WeightData: "Weights",
-            BoneMapData: "BoneRemap"
+            FaceBlock: "Faces",
+            MaterialList: "MaterialList",
+            MaterialMap: "MaterialMap",
+            VertexData: "Vertices",
+            NormalsData: "Normals",
+            UVData: "UVs",
+            RGBData: "RGBLike",
+            WeightData: "Weights",
+            BoneMapData: "BoneRemap",
         }  # ,UnknBlock:"UnknBlock"}
         type_data = {
-            FaceBlock: FFaces, MaterialList: FMatRemapList,
-            MaterialMap: FMatPerTri, VertexData: FVertices,
-            NormalsData: FNormals, UVData: FUVs,
-            RGBData: FRGB, WeightData: FWeights,
-            BoneMapData: FBoneRemap
+            FaceBlock: FFaces,
+            MaterialList: FMatRemapList,
+            MaterialMap: FMatPerTri,
+            VertexData: FVertices,
+            NormalsData: FNormals,
+            UVData: FUVs,
+            RGBData: FRGB,
+            WeightData: FWeights,
+            BoneMapData: FBoneRemap,
         }  # ,UnknBlock:"UnknBlock"}
         for objectBlock in objects:
             typing = FBlock.type_lookup(objectBlock.Header.type)
@@ -186,7 +207,9 @@ class FMesh:
                 tristrip_repetition = self.calc_strip_lengths(objectBlock)
         if hasattr(self, "MaterialMap"):
             # Not sure if the condition is necessary
-            self.MaterialMap = self.decompose_material_list(self.MaterialMap, tristrip_repetition)
+            self.MaterialMap = self.decompose_material_list(
+                self.MaterialMap, tristrip_repetition
+            )
 
         """
         # Automatically assigns the map data.
@@ -231,14 +254,17 @@ class FMesh:
             "weights": self.Weights.Weights,
             "boneRemap": self.BoneRemap,
             "materials": self.MaterialList,
-            "faceMaterial": self.MaterialMap
+            "faceMaterial": self.MaterialMap,
         }
 
 
 class FMat:
     def __init__(self, mat_block, textures):
         # print(len(MatBlock.Data[0].textureIndices))
-        self.textureIndices = [textures[ix.index].Data[0].imageID for ix in mat_block.Data[0].textureIndices]
+        self.textureIndices = [
+            textures[ix.index].Data[0].imageID
+            for ix in mat_block.Data[0].textureIndices
+        ]
 
     def get_diffuse(self):
         # print(len(self.textureIndices))

@@ -47,7 +47,9 @@ class FSklImporter:
             bpy.context.scene.objects.link(bone_object)
         parent_name = "Root" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
         if parent_name not in skeleton:
-            FSklImporter.import_bone(skeleton_structure[bone.parentID], skeleton, skeleton_structure)
+            FSklImporter.import_bone(
+                skeleton_structure[bone.parentID], skeleton, skeleton_structure
+            )
         bone_object["id"] = bone.nodeID
         bone_object.parent = skeleton[parent_name]
         bone_object.matrix_local = FSklImporter.deserialize_pose_vector(bone.posVec)

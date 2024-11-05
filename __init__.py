@@ -17,7 +17,7 @@ bl_info = {
     "author": "AsteriskAmpersand (Code) & Vuze (Structure) & Houmgaor (Update)",
     "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
     "version": (2, 0, 0),
-    "blender": (2, 80, 0)
+    "blender": (2, 80, 0),
 }
 
 

@@ -11,36 +11,38 @@ from FileLike import FileLike
 
 
 class byte4(PyCStruct):
-    fields = OrderedDict([
-        ("array", "byte[4]"),
-    ])
+    fields = OrderedDict(
+        [
+            ("array", "byte[4]"),
+        ]
+    )
 
 
 class uv(PyCStruct):
-    fields = OrderedDict([
-        ("u", "float"),
-        ("v", "float"),
-    ])
+    fields = OrderedDict(
+        [
+            ("u", "float"),
+            ("v", "float"),
+        ]
+    )
 
 
 class vect3(PyCStruct):
-    fields = OrderedDict([
-        ("x", "float"),
-        ("y", "float"),
-        ("z", "float")
-    ])
+    fields = OrderedDict([("x", "float"), ("y", "float"), ("z", "float")])
 
 
 position = vect3
 
 
 class vect4(PyCStruct):
-    fields = OrderedDict([
-        ("x", "float"),
-        ("y", "float"),
-        ("z", "float"),
-        ("w", "float"),
-    ])
+    fields = OrderedDict(
+        [
+            ("x", "float"),
+            ("y", "float"),
+            ("z", "float"),
+            ("w", "float"),
+        ]
+    )
 
 
 normal = vect4
@@ -48,14 +50,19 @@ tangent = vect4
 
 
 class vertexId(PyCStruct):
-    fields = OrderedDict([
-        ("id", "uint32"), ])
+    fields = OrderedDict(
+        [
+            ("id", "uint32"),
+        ]
+    )
 
 
 class tristrip(PyCStruct):
-    fields = OrderedDict([
-        ("count", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("count", "uint32"),
+        ]
+    )
 
     def marshall(self, data):
         super().marshall(data)
@@ -64,14 +71,16 @@ class tristrip(PyCStruct):
 
 
 class FBlockHeader(PyCStruct):
-    fields = OrderedDict([
-        ("type", "uint32"),
-        ("count", "uint32"),
-        ("size", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("type", "uint32"),
+            ("count", "uint32"),
+            ("size", "uint32"),
+        ]
+    )
 
 
-class FBlock():
+class FBlock:
     def __init__(self, parent=None):
         self.Header = FBlockHeader()
         self.Data = None
@@ -97,9 +106,15 @@ class FBlock():
 
         self.Header.marshall(data)
         print(hex(self.Header.type))
-        #subData = data[len(self.Header):self.Header.size]
-        self.Data = [types[self.Header.type](parent=self) if self.Header.type in types else UnknBlock(self) for _ in
-                     range(self.Header.count)]
+        # subData = data[len(self.Header):self.Header.size]
+        self.Data = [
+            (
+                types[self.Header.type](parent=self)
+                if self.Header.type in types
+                else UnknBlock(self)
+            )
+            for _ in range(self.Header.count)
+        ]
         [d.marshall(data) for d in self.Data]
 
     def prettyPrint(self, base=""):
@@ -109,22 +124,28 @@ class FBlock():
             l.pretty_print(base + "\t")
 
 
-class FileBlock(FBlock): pass
+class FileBlock(FBlock):
+    pass
 
 
-class MainBlock(FBlock): pass
+class MainBlock(FBlock):
+    pass
 
 
-class ObjectBlock(FBlock): pass
+class ObjectBlock(FBlock):
+    pass
 
 
-class FaceBlock(FBlock): pass
+class FaceBlock(FBlock):
+    pass
 
 
 class InitBlock(PyCStruct):
-    fields = OrderedDict([
-        ("data", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("data", "uint32"),
+        ]
+    )
 
 
 class UnknBlock(FBlock):
@@ -135,7 +156,7 @@ class UnknBlock(FBlock):
         pass
 
 
-class dataContainer():
+class dataContainer:
     def __init__(self, parent):
         self.count = parent.Header.count
 

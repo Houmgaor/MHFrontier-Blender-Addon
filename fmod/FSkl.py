@@ -10,8 +10,8 @@ try:
 except ModuleNotFoundError:
     import sys
 
-    sys.path.insert(0, r'..\common')
-    sys.path.insert(0, r'..\fmod')
+    sys.path.insert(0, r"..\common")
+    sys.path.insert(0, r"..\fmod")
     from FBlock import FBlock
     from FileLike import FileLike
 

@@ -39,7 +39,7 @@ def material_setup(blender_obj, *_args):
         mat_name = blender_obj.data["material"].replace("\x00", "")
     else:
         mat_name = "RenderMaterial"
-    bpy.context.scene.render.engine = 'CYCLES'
+    bpy.context.scene.render.engine = "CYCLES"
     if mat_name in bpy.data.materials:
         blender_obj.data.materials.append(bpy.data.materials[mat_name])
         return None
@@ -80,7 +80,7 @@ def principled_setup(node_tree):
         node_tree.links.new(normal_node.outputs[0], bsdf_node.inputs["Normal"])
     specular_node = yield
     if specular_node:
-        if bpy.app.version >= (4, ):
+        if bpy.app.version >= (4,):
             input_name = "Specular IOR Level"
         else:
             input_name = "Specular"

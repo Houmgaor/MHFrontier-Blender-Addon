@@ -13,23 +13,25 @@ from ..fmod import FSklImporterLayer
 class ImportFSKL(bpy.types.Operator, ImportHelper):
     bl_idname = "custom_import.import_mhf_fskl"
     bl_label = "Load MHF FSKL file (.fskl)"
-    bl_options = {'REGISTER', 'PRESET', 'UNDO'}
- 
+    bl_options = {"REGISTER", "PRESET", "UNDO"}
+
     # ImportHelper mixin class uses this
     filename_ext = ".fskl"
-    filter_glob = bpy.props.StringProperty(default="*.fskl", options={'HIDDEN'}, maxlen=255)
+    filter_glob = bpy.props.StringProperty(
+        default="*.fskl", options={"HIDDEN"}, maxlen=255
+    )
 
     def execute(self, _context):
         """Create a new Frontier Skeleton (FSKL) tree to the hierarchy."""
         try:
-            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
             print(error)
-        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_all(action="DESELECT")
         importer = FSklImporterLayer.FSklImporter()
         importer.execute(self.properties.filepath)
-        return {'FINISHED'}
-    
-    
+        return {"FINISHED"}
+
+
 def menu_func_import(self, _context):
     self.layout.operator(ImportFSKL.bl_idname, text="MHF FSKL (.fskl)")

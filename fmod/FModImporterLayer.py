@@ -17,7 +17,7 @@ from ..blender.BlenderNodesFunctions import (
     diffuse_setup,
     normal_setup,
     specular_setup,
-    finish_setup
+    finish_setup,
 )
 from ..fmod.FMod import FModel
 
@@ -25,7 +25,7 @@ from ..fmod.FMod import FModel
 class FModImporter:
     @staticmethod
     def execute(fmod_path, import_textures):
-        bpy.context.scene.render.engine = 'CYCLES'
+        bpy.context.scene.render.engine = "CYCLES"
         fmod = FModel(fmod_path)
         meshes = fmod.traditional_mesh_structure()
         materials = fmod.Materials
@@ -38,24 +38,33 @@ class FModImporter:
     @staticmethod
     def import_mesh(ix, mesh, blender_materials):
         mesh_objects = []
-        bpy.ops.object.select_all(action='DESELECT')
+        bpy.ops.object.select_all(action="DESELECT")
 
         # Geometry
-        blender_mesh, blender_object = FModImporter.create_mesh("FModMeshpart %03d" % (ix,), mesh)
+        blender_mesh, blender_object = FModImporter.create_mesh(
+            "FModMeshpart %03d" % (ix,), mesh
+        )
         # Normals Handling
         FModImporter.set_normals(mesh["normals"], blender_mesh)
         # UVs
         if bpy.app.version >= (2, 8):
             # Blender 2.8+
             FModImporter.create_texture_layer_from_obj(
-                blender_object, blender_mesh, mesh["uvs"],
-                mesh["materials"], mesh["faceMaterial"], blender_materials
+                blender_object,
+                blender_mesh,
+                mesh["uvs"],
+                mesh["materials"],
+                mesh["faceMaterial"],
+                blender_materials,
             )
         else:
             # Blender <2.8
             FModImporter.create_texture_layer(
-                blender_mesh, mesh["uvs"], mesh["materials"],
-                mesh["faceMaterial"], blender_materials
+                blender_mesh,
+                mesh["uvs"],
+                mesh["materials"],
+                mesh["faceMaterial"],
+                blender_materials,
             )
 
         # Weights
@@ -79,8 +88,7 @@ class FModImporter:
 
     @staticmethod
     def create_texture_layer_from_obj(
-        blender_obj, blender_mesh, uv, material_list,
-        face_materials, blender_materials
+        blender_obj, blender_mesh, uv, material_list, face_materials, blender_materials
     ):
         """General function to create texture, for Blender 2.8+."""
         for material in material_list:
@@ -142,7 +150,7 @@ class FModImporter:
     def set_normals(normals, mesh_part):
         mesh_part.update(calc_edges=True)
 
-        cl_normals = array.array('f', [0.0] * (len(mesh_part.loops) * 3))
+        cl_normals = array.array("f", [0.0] * (len(mesh_part.loops) * 3))
         mesh_part.loops.foreach_get("normal", cl_normals)
         mesh_part.polygons.foreach_set("use_smooth", [True] * len(mesh_part.polygons))
 
@@ -166,21 +174,21 @@ class FModImporter:
             for vertex, weight in group:
                 if group_name not in mesh_obj.vertex_groups:
                     mesh_obj.vertex_groups.new(name=group_name)  # blenderObject Maybe?
-                mesh_obj.vertex_groups[group_name].add([vertex], weight, 'ADD')
+                mesh_obj.vertex_groups[group_name].add([vertex], weight, "ADD")
 
     @staticmethod
     def maximize_clipping():
         for a in bpy.context.screen.areas:
-            if a.type == 'VIEW_3D':
+            if a.type == "VIEW_3D":
                 for s in a.spaces:
-                    if s.type == 'VIEW_3D':
-                        s.clip_end = 10 ** 4
+                    if s.type == "VIEW_3D":
+                        s.clip_end = 10**4
 
     @staticmethod
     def clear_scene():
         for key in list(bpy.context.scene.keys()):
             del bpy.context.scene[key]
-        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.select_all(action="SELECT")
         bpy.ops.object.delete()
         for i in bpy.data.images.keys():
             bpy.data.images.remove(bpy.data.images[i])
@@ -205,7 +213,7 @@ class FModImporter:
             diffuse_ix = materials[ix].get_diffuse()
             normal_ix = materials[ix].get_normal()
             specular_ix = materials[ix].get_specular()
-            # Construction        
+            # Construction
             setup = principled_setup(node_tree)
             next(setup)
             if diffuse_ix is not None:
@@ -247,8 +255,20 @@ class FModImporter:
         model_path = Path(path)
         candidates = [
             model_path.parent,
-            *sorted([f for f in model_path.parents[1].glob('**/*') if f.is_dir() and f > model_path.parent]),
-            *sorted([f for f in model_path.parents[1].glob('**/*') if f.is_dir() and f < model_path.parent])
+            *sorted(
+                [
+                    f
+                    for f in model_path.parents[1].glob("**/*")
+                    if f.is_dir() and f > model_path.parent
+                ]
+            ),
+            *sorted(
+                [
+                    f
+                    for f in model_path.parents[1].glob("**/*")
+                    if f.is_dir() and f < model_path.parent
+                ]
+            ),
         ]
         for directory in candidates:
             current = sorted(list(directory.rglob("*.png")))

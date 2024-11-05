@@ -13,36 +13,38 @@ try:
 except ModuleNotFoundError:
     import sys
 
-    sys.path.insert(0, r'..\common')
+    sys.path.insert(0, r"..\common")
     from Cstruct import PyCStruct
     from FileLike import FileLike
 
 
 class Byte4(PyCStruct):
-    fields = OrderedDict([
-        ("array", "byte[4]"),
-    ])
+    fields = OrderedDict(
+        [
+            ("array", "byte[4]"),
+        ]
+    )
 
 
 class UIntField(PyCStruct):
-    fields = OrderedDict([
-        ("id", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("id", "uint32"),
+        ]
+    )
 
 
 class UV(PyCStruct):
-    fields = OrderedDict([
-        ("u", "float"),
-        ("v", "float"),
-    ])
+    fields = OrderedDict(
+        [
+            ("u", "float"),
+            ("v", "float"),
+        ]
+    )
 
 
 class Vect3(PyCStruct):
-    fields = OrderedDict([
-        ("x", "float"),
-        ("y", "float"),
-        ("z", "float")
-    ])
+    fields = OrderedDict([("x", "float"), ("y", "float"), ("z", "float")])
 
 
 position = Vect3
@@ -50,25 +52,33 @@ normal = Vect3
 
 
 class Vect4(PyCStruct):
-    fields = OrderedDict([
-        ("x", "float"),
-        ("y", "float"),
-        ("z", "float"),
-        ("w", "float"),
-    ])
+    fields = OrderedDict(
+        [
+            ("x", "float"),
+            ("y", "float"),
+            ("z", "float"),
+            ("w", "float"),
+        ]
+    )
 
 
 tangent = Vect4
 
 
 class VertexId(PyCStruct):
-    fields = OrderedDict([("id", "uint32"), ])
+    fields = OrderedDict(
+        [
+            ("id", "uint32"),
+        ]
+    )
 
 
 class TrisTrip(PyCStruct):
-    fields = OrderedDict([
-        ("count", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("count", "uint32"),
+        ]
+    )
 
     def marshall(self, data):
         super().marshall(data)
@@ -77,16 +87,20 @@ class TrisTrip(PyCStruct):
 
 
 class Weight(PyCStruct):
-    fields = OrderedDict([
-        ("boneID", "uint32"),
-        ("weightValue", "float"),
-    ])
+    fields = OrderedDict(
+        [
+            ("boneID", "uint32"),
+            ("weightValue", "float"),
+        ]
+    )
 
 
 class WeightData(PyCStruct):
-    fields = OrderedDict([
-        ("count", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("count", "uint32"),
+        ]
+    )
 
     def marshall(self, data):
         super().marshall(data)
@@ -100,34 +114,41 @@ class WeightData(PyCStruct):
 
 
 class BoneBlock(PyCStruct):
-    fields = OrderedDict([
-        ("nodeID", "int32"),
-        ("parentID", "int32"),
-        ("leftChild", "int32"),
-        ("rightSibling", "int32"),
-        ("vec1", "float[4]"),
-        ("vec2", "float[4]"),
-        ("posVec", "float[4]"),
-        ("null", "uint32"),
-        ("chainID", "uint32"),
-        ("unkn2", "uint32[46]"),
-    ])
+    fields = OrderedDict(
+        [
+            ("nodeID", "int32"),
+            ("parentID", "int32"),
+            ("leftChild", "int32"),
+            ("rightSibling", "int32"),
+            ("vec1", "float[4]"),
+            ("vec2", "float[4]"),
+            ("posVec", "float[4]"),
+            ("null", "uint32"),
+            ("chainID", "uint32"),
+            ("unkn2", "uint32[46]"),
+        ]
+    )
 
 
 class TextureData(PyCStruct):
-    fields = OrderedDict([
-        ("imageID", "uint32"),
-        ("width", "uint32"),
-        ("height", "uint32"),
-        ("unkn", "byte[244]")])
+    fields = OrderedDict(
+        [
+            ("imageID", "uint32"),
+            ("width", "uint32"),
+            ("height", "uint32"),
+            ("unkn", "byte[244]"),
+        ]
+    )
 
 
 class FBlockHeader(PyCStruct):
-    fields = OrderedDict([
-        ("type", "uint32"),
-        ("count", "int32"),
-        ("size", "uint32"),
-    ])
+    fields = OrderedDict(
+        [
+            ("type", "uint32"),
+            ("count", "int32"),
+            ("size", "uint32"),
+        ]
+    )
 
 
 class FBlock:
@@ -144,7 +165,15 @@ class FBlock:
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
-        print(base + name + ":" + " " + str(self.Header.count) + " \t" + hex(self.Header.type))
+        print(
+            base
+            + name
+            + ":"
+            + " "
+            + str(self.Header.count)
+            + " \t"
+            + hex(self.Header.type)
+        )
         for datum in self.Data:
             datum.pretty_print(base + "\t")
 
@@ -206,38 +235,47 @@ class SimpleFBlock(FBlock):
 
 
 class MaterialHeader(PyCStruct):
-    fields = OrderedDict([
-        ("unkn1", "uint32"),
-        ("unkn2", "uint32"),
-        ("blockSize", "uint32"),
-        ("unkn3", "float"),
-        ("unkn4", "float"),
-        ("unkn5", "float"),
-        ("unkn6", "float"),
-        ("unkn7", "float"),
-        ("unkn8", "float"),
-        ("unkn9", "float"),
-        ("float0", "float"),
-        ("float1", "float"),
-        ("float2", "float"),
-        ("float3", "float"),
-        ("textureCount", "uint32"),
-        ("unkn11", "float"),
-        ("unkn12", "uint32"), ])
+    fields = OrderedDict(
+        [
+            ("unkn1", "uint32"),
+            ("unkn2", "uint32"),
+            ("blockSize", "uint32"),
+            ("unkn3", "float"),
+            ("unkn4", "float"),
+            ("unkn5", "float"),
+            ("unkn6", "float"),
+            ("unkn7", "float"),
+            ("unkn8", "float"),
+            ("unkn9", "float"),
+            ("float0", "float"),
+            ("float1", "float"),
+            ("float2", "float"),
+            ("float3", "float"),
+            ("textureCount", "uint32"),
+            ("unkn11", "float"),
+            ("unkn12", "uint32"),
+        ]
+    )
 
 
 class MaterialChannelMapping(PyCStruct):
     def __init__(self, blocksize):
         if blocksize > 272:
-            self.fields = OrderedDict([
-                ("unkn", "uint32[%s]" % (blocksize - 80)),
-                ("TextureLinkDif", "uint32"),
-                ("TextureLinkNor", "uint32"),
-                ("TextureLinkSpe", "uint32"), ])
+            self.fields = OrderedDict(
+                [
+                    ("unkn", "uint32[%s]" % (blocksize - 80)),
+                    ("TextureLinkDif", "uint32"),
+                    ("TextureLinkNor", "uint32"),
+                    ("TextureLinkSpe", "uint32"),
+                ]
+            )
         else:
-            self.fields = OrderedDict([
-                ("unkn", "byte[%s]" % (blocksize - 72)),
-                ("TextureLinkDif", "uint32"), ])
+            self.fields = OrderedDict(
+                [
+                    ("unkn", "byte[%s]" % (blocksize - 72)),
+                    ("TextureLinkDif", "uint32"),
+                ]
+            )
         super().__init__()
 
 
@@ -246,18 +284,21 @@ class TextureIndex(PyCStruct):
 
 
 class MaterialData(PyCStruct):
-    fields = OrderedDict([
-        # ("unkn1" , "uint32"),
-        # ("unkn2" , "uint32"),
-        # ("blockSize" , "uint32"),
-        ("unkn3", "float[3]"),
-        ("unkn6", "float"),
-        ("unkn7", "float[3]"),
-        ("float4", "float[4]"),
-        ("unkn8", "uint32"),
-        ("unkn9", "float"),
-        ("textureCount", "uint32"),
-        ("unkn", "byte[200]"), ])
+    fields = OrderedDict(
+        [
+            # ("unkn1" , "uint32"),
+            # ("unkn2" , "uint32"),
+            # ("blockSize" , "uint32"),
+            ("unkn3", "float[3]"),
+            ("unkn6", "float"),
+            ("unkn7", "float[3]"),
+            ("float4", "float[4]"),
+            ("unkn8", "uint32"),
+            ("unkn9", "float"),
+            ("textureCount", "uint32"),
+            ("unkn", "byte[200]"),
+        ]
+    )
 
     def marshall(self, data):
         super().marshall(data)

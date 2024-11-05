@@ -7,11 +7,12 @@ Created on Tue Aug 18 22:47:34 2020
 import bpy
 from mathutils import Vector, Matrix
 
-MACHINE_EPSILON = 2 ** -8
+MACHINE_EPSILON = 2**-8
 
 
 class DummyBone:
     """Dummy for Blender bones."""
+
     def __init__(self):
         self.matrix = Matrix.Identity(4)
         self.head = Vector([0, -1, 0])
@@ -42,7 +43,9 @@ def create_bone_tree(armature, anchor, parent_bone=None):
     bone.head = Vector([0, 0, 0])
     bone.tail = Vector([0, MACHINE_EPSILON, 0])
     if not parent_bone:
-        parent_bone = DummyBone()  # matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
+        parent_bone = (
+            DummyBone()
+        )  # matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
     if bpy.app.version >= (2, 8):
         bone.matrix = parent_bone.matrix @ anchor.matrix_local
     else:
@@ -61,24 +64,24 @@ def create_armature(context):
     for scene_object in context.scene.objects:
         if scene_object.type == "EMPTY" and scene_object.parent is None:
             bone_anchors.append(scene_object)
-    bpy.ops.object.select_all(action='DESELECT')
-    blender_armature = bpy.data.armatures.new('Armature')
-    arm_ob = bpy.data.objects.new('Armature', blender_armature)
+    bpy.ops.object.select_all(action="DESELECT")
+    blender_armature = bpy.data.armatures.new("Armature")
+    arm_ob = bpy.data.objects.new("Armature", blender_armature)
     if bpy.app.version >= (2, 8):
         context.collection.objects.link(arm_ob)
         context.view_layer.update()
         arm_ob.select_set(True)
         arm_ob.show_in_front = True
         context.view_layer.objects.active = arm_ob
-        blender_armature.display_type = 'STICK'
+        blender_armature.display_type = "STICK"
     else:
         context.scene.objects.link(arm_ob)
         context.scene.update()
         arm_ob.select = True
         arm_ob.show_x_ray = True
         context.scene.objects.active = arm_ob
-        blender_armature.draw_type = 'STICK'
-    bpy.ops.object.mode_set(mode='EDIT')
+        blender_armature.draw_type = "STICK"
+    bpy.ops.object.mode_set(mode="EDIT")
 
     # Now add the new bones to the armature
     root_bone = create_root_bone(blender_armature)
@@ -96,18 +99,19 @@ def create_armature(context):
 
 class ConvertFSKL(bpy.types.Operator):
     """Operator to convert a Frontier Skeleton to Blender Armature."""
+
     bl_idname = "object.convert_fskl"
     bl_label = "Create an Armature from FSKL tree"
-    bl_options = {'REGISTER', 'PRESET', 'UNDO'}
+    bl_options = {"REGISTER", "PRESET", "UNDO"}
 
     def execute(self, context):
         """Create the armature, _context is not used."""
         create_armature(context)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def draw(self, _context):
         layout = self.layout
-        layout.label(text="Create Armature from FSKL Tree", icon='armature_data')
+        layout.label(text="Create Armature from FSKL Tree", icon="armature_data")
 
 
 def menu_func(self, _context):
