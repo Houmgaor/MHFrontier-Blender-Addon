@@ -16,6 +16,7 @@ Locate the data you want to import, have a look at [Get FMOD/FSKL files](#get-fm
 Open Blender, ``File > Import > MHF FMOD``, select the file.
 
 ![Disufiroa 3D model](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/f9ebbd8f-2ccd-418b-ae0b-c1cfedbfcf68)
+![Disufiroa with textures](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/2c9f9223-3296-437e-856b-446cfb1cf2a7)
 
 Add the "skeleton" (hierarchy of axes), ``File > Import > MHF FSKL``.
 
@@ -27,7 +28,7 @@ Convert the skeleton to an armature, ``Object > Create Armature from FSKL Tree``
 
 Your model is imported with the textures, and you can change its pose.
 
-![Disufiroa image](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/assets/35099109/2c9f9223-3296-437e-856b-446cfb1cf2a7)
+![Disufiroa rendered](https://github.com/user-attachments/assets/fe1c5bbb-baac-4b08-84df-63fbdb9a2e5e)
 
 ## Get FMOD/FSKL files
 
