@@ -9,13 +9,13 @@ from collections import OrderedDict
 from binascii import hexlify
 
 
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i : i + n]
+def chunks(sliceable, n):
+    """Yield successive n-sized chunks from sliceable."""
+    for i in range(0, len(sliceable), n):
+        yield sliceable[i : i + n]
 
 
-def HalfToFloat(h):
+def half_to_float(h):
     s = int((h >> 15) & 0x00000001)  # sign
     e = int((h >> 10) & 0x0000001F)  # exponent
     f = int(h & 0x000003FF)  # fraction
@@ -24,12 +24,12 @@ def HalfToFloat(h):
     return (-1) ** s * 2 ** (e - 15) * (f / (2**10) + 1)
 
 
-def minifloatDeserialize(x):
+def minifloat_deserialize(x):
     v = struct.unpack("H", x)
-    return HalfToFloat(v[0])
+    return half_to_float(v[0])
 
 
-def minifloatSerialize(x):
+def minifloat_serialize(x):
     F16_EXPONENT_BITS = 0x1F
     F16_EXPONENT_SHIFT = 10
     F16_EXPONENT_BIAS = 15
@@ -39,7 +39,6 @@ def minifloatSerialize(x):
     a = struct.pack(">f", x)
     b = hexlify(a)
     f32 = int(b, 16)
-    f16 = 0
     sign = (f32 >> 16) & 0x8000
     exponent = ((f32 >> 23) & 0xFF) - 127
     mantissa = f32 & 0x007FFFFF
@@ -143,8 +142,8 @@ class Cstruct:
         "uint64": {"size": 8, **deserializer("Q")},
         "hfloat": {
             "size": 2,
-            "deserializer": minifloatDeserialize,
-            "serializer": minifloatSerialize,
+            "deserializer": minifloat_deserialize,
+            "serializer": minifloat_serialize,
         },
         "float": {"size": 4, **deserializer("f")},
         "double": {"size": 8, **deserializer("d")},

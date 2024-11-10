@@ -11,6 +11,7 @@ from ..fmod.FSkl import FSkeleton
 
 
 class FSklImporter:
+    """Main importer for FSKL (Frontier SKeLeton) files."""
     @staticmethod
     def execute(fmod_path):
         skeleton = FSkeleton(fmod_path).skeleton_structure()

@@ -7,16 +7,8 @@ Created on Thu Apr 04 13:57:02 2019
 
 from collections import OrderedDict
 
-try:
-    from ..common.Cstruct import PyCStruct
-    from ..common.FileLike import FileLike
-except ModuleNotFoundError:
-    import sys
-
-    sys.path.insert(0, r"..\common")
-    from Cstruct import PyCStruct
-    from FileLike import FileLike
-
+from ..common.Cstruct import PyCStruct
+from ..common.FileLike import FileLike
 
 class Byte4(PyCStruct):
     fields = OrderedDict(

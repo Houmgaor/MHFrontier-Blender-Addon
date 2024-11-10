@@ -123,11 +123,6 @@ def specular_setup(node_tree, texture, *_args):
     return curve_node
 
 
-def emission_setup(_node_tree, _texture, *_args):
-    """Commented out, it's not really possible to work without the parameters."""
-    return ""
-
-
 def rmt_setup(node_tree, texture, *_args):
     """
     Create RMTMap.

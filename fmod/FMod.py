@@ -7,42 +7,19 @@ Created on Fri Apr  5 23:03:36 2019
 import warnings
 from itertools import cycle
 
-try:
-    from ..fmod.FBlock import FBlock
-    from ..fmod.FBlock import (
-        FaceBlock,
-        MaterialList,
-        MaterialMap,
-        VertexData,
-        NormalsData,
-        UVData,
-        RGBData,
-        WeightData,
-        BoneMapData,
-    )
-    from ..common.FileLike import FileLike
-except ModuleNotFoundError as err:
-    print(
-        "Cannot import modules in normal mode, fallback to local folder search. Error:",
-        err,
-    )
-    import sys
-
-    sys.path.insert(0, r"..\common")
-    sys.path.insert(0, r"..\fmod")
-    from FBlock import FBlock
-    from FBlock import (
-        FaceBlock,
-        MaterialList,
-        MaterialMap,
-        VertexData,
-        NormalsData,
-        UVData,
-        RGBData,
-        WeightData,
-        BoneMapData,
-    )
-    from FileLike import FileLike
+from ..fmod.FBlock import FBlock
+from ..fmod.FBlock import (
+    FaceBlock,
+    MaterialList,
+    MaterialMap,
+    VertexData,
+    NormalsData,
+    UVData,
+    RGBData,
+    WeightData,
+    BoneMapData,
+)
+from ..common.FileLike import FileLike
 
 
 class FFaces:

@@ -4,17 +4,8 @@ Created on Sun Dec 29 21:50:00 2019
 
 @author: AsteriskAmpersand
 """
-try:
-    from ..fmod.FBlock import FBlock
-    from ..common.FileLike import FileLike
-except ModuleNotFoundError:
-    import sys
-
-    sys.path.insert(0, r"..\common")
-    sys.path.insert(0, r"..\fmod")
-    from FBlock import FBlock
-    from FileLike import FileLike
-
+from ..fmod.FBlock import FBlock
+from ..common.FileLike import FileLike
 
 class FBone:
     def __init__(self, frontier_bone):
