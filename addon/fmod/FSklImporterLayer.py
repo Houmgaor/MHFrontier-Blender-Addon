@@ -7,11 +7,12 @@ Created on Mon Dec 30 01:17:01 2019
 import bpy
 from mathutils import Vector, Matrix
 
-from ..fmod.FSkl import FSkeleton
+from ..fmod.fskl import FSkeleton
 
 
 class FSklImporter:
     """Main importer for FSKL (Frontier SKeLeton) files."""
+
     @staticmethod
     def execute(fmod_path):
         skeleton = FSkeleton(fmod_path).skeleton_structure()

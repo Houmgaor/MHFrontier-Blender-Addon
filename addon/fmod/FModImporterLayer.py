@@ -13,7 +13,7 @@ import bpy
 import bmesh
 
 from ..blender import blender_nodes_functions as bnf
-from ..fmod.FMod import FModel
+from ..fmod.fmod import FModel
 
 
 class FModImporter:
