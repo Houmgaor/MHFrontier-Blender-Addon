@@ -12,7 +12,7 @@ def zip_folder(folder_path, output_path):
     """
     with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for root, dirs, files in os.walk(folder_path):
-            if not root.startswith("./addon"):
+            if not root.startswith("./mhfrontier"):
                 continue
             for file in files:
                 file_path = os.path.join(root, file)

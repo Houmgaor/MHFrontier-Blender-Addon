@@ -5,6 +5,7 @@ Created on Fri Apr  5 23:03:36 2019
 
 @author: AsteriskAmpersand
 """
+
 import warnings
 from itertools import cycle
 

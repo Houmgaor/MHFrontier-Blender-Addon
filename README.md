@@ -31,7 +31,7 @@ Your model is imported with the textures, and you can change its pose.
 
 ## Build
 
-The important part of the addon is in the addon folder.
+The important part of the addon is in the "mhfrontier" folder.
 You only need to create a ZIP of this folder to build it.
 If you want to do it from a python script just run.
 
