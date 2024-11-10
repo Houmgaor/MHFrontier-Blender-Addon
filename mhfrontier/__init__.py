@@ -18,11 +18,14 @@ from .operators import (
 content = bytes("", "UTF-8")
 bl_info = {
     "name": "MHFrontier Model Importer",
-    "category": "Import-Export",
-    "author": "AsteriskAmpersand (Code) & Vuze (Structure) & Houmgaor (Update)",
+    "description": "Import Monster Hunter Frontier model files to Blender.",
+    "author": "AsteriskAmpersand (Code), Vuze (Structure), Houmgaor (Update)",
+    "version": (2, 1, 0),
+    "blender": (2, 70, 0),
     "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
-    "version": (2, 0, 0),
-    "blender": (2, 80, 0),
+    "doc_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon",
+    "tracker_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon/issues",
+    "category": "Import-Export",
 }
 
 

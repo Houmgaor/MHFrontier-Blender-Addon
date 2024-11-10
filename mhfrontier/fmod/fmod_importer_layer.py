@@ -45,30 +45,20 @@ class FModImporter:
 
         # Geometry
         blender_mesh, blender_object = FModImporter.create_mesh(
-            "FModMeshpart %03d" % (index,), mesh
+            "FModMeshpart %03d" % (index,), mesh["vertices"], mesh["faces"]
         )
         # Normals Handling
         FModImporter.set_normals(mesh["normals"], blender_mesh)
         # UVs
         if bpy.app.version >= (2, 8):
-            # Blender 2.8+
             blender_object.data.uv_layers.new(name="UV0")
-            FModImporter.create_texture_layer_from_obj(
-                blender_mesh,
-                mesh["uvs"],
-                mesh["materials"],
-                mesh["faceMaterial"],
-                blender_materials,
-            )
-        else:
-            # Blender <2.8
-            FModImporter.create_texture_layer(
-                blender_mesh,
-                mesh["uvs"],
-                mesh["materials"],
-                mesh["faceMaterial"],
-                blender_materials,
-            )
+        FModImporter.create_texture_layer(
+            blender_mesh,
+            mesh["uvs"],
+            mesh["materials"],
+            mesh["faceMaterial"],
+            blender_materials,
+        )
 
         # Weights
         FModImporter.set_weights(mesh["weights"], mesh["boneRemap"], blender_object)
@@ -76,21 +66,23 @@ class FModImporter:
         mesh_objects.append(blender_object)
 
     @staticmethod
-    def create_mesh(name, mesh_part):
+    def create_mesh(name, vertices, faces):
         """
         Create a new mesh.
 
         :param str name: Name for the mesh
-        :param dict mesh_part: Mesh data with vertices and triangles
+        :param vertices: Vertices to assign, the scale will be changed
+        :type vertices: list[tuple[float, float, float]]
+        :param list[tuple] faces: List of faces
 
         :return: Mesh and associated object.
         :rtype: tuple[bpy.types.Mesh, bpy.types.Object]
         """
         blender_mesh = bpy.data.meshes.new("%s" % (name,))
-        scaled_vertices = [tuple(i / 100 for i in v) for v in mesh_part["vertices"]]
-        blender_mesh.from_pydata(scaled_vertices, [], mesh_part["faces"])
+        scaled_vertices = [tuple(i / 100 for i in v) for v in vertices]
+        blender_mesh.from_pydata(scaled_vertices, [], faces)
         blender_mesh.update()
-        blender_object = bpy.data.objects.new("%s" % (name,), blender_mesh)
+        blender_object = bpy.data.objects.new(name, blender_mesh)
         # Blender 2.8+
         if bpy.app.version >= (2, 8):
             bpy.context.collection.objects.link(blender_object)
@@ -100,11 +92,11 @@ class FModImporter:
         return blender_mesh, blender_object
 
     @staticmethod
-    def create_texture_layer_from_obj(
+    def create_texture_layer(
         blender_mesh, uv, material_list, face_materials, blender_materials
     ):
         """
-        Create a texture.
+        Assign a texture and UV map.
 
         :param bmesh blender_mesh: bmesh to use.
         :param list uv: Object UV maps
@@ -112,42 +104,20 @@ class FModImporter:
         :param list[int] face_materials: List of face material indices
         :param list[int] blender_materials: Blender materials already existing.
         """
+        # Add the material to the list
         for material in material_list:
             if material not in blender_materials:
                 material_name = "FrontierMaterial-%03d" % material
                 blender_materials[material] = bpy.data.materials.new(name=material_name)
             blender_mesh.materials.append(blender_materials[material])
+        if bpy.app.version < (2, 8):
+            blender_mesh.uv_textures.new("UV0")
         blender_mesh.update()
         blender_b_mesh = bmesh.new()
         blender_b_mesh.from_mesh(blender_mesh)
-        uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
-        blender_b_mesh.faces.ensure_lookup_table()
-        for face in blender_b_mesh.faces:
-            for loop in face.loops:
-                loop[uv_layer].uv = uv[loop.vert.index]
-            face.material_index = face_materials[face.index]
-        blender_b_mesh.to_mesh(blender_mesh)
-        blender_mesh.update()
 
-    @staticmethod
-    def create_texture_layer(
-        blender_mesh, uv, material_list, face_materials, blender_materials
-    ):
-        for material in material_list:
-            if material not in blender_materials:
-                material_name = "FrontierMaterial-%03d" % material
-                blender_materials[material] = bpy.data.materials.new(name=material_name)
-            blender_mesh.materials.append(blender_materials[material])
-        blender_mesh.uv_textures.new("UV0")
-        blender_mesh.update()
-        blender_b_mesh = bmesh.new()
-        blender_b_mesh.from_mesh(blender_mesh)
-        try:
-            uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
-        except AttributeError as error:
-            # Not sure why this happens. Old Blender version?
-            uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
-            print(error)
+        # Assign UVs
+        uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
         blender_b_mesh.faces.ensure_lookup_table()
         for face in blender_b_mesh.faces:
             for loop in face.loops:

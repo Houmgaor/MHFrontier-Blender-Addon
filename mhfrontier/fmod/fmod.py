@@ -145,12 +145,17 @@ class FMesh:
     """
 
     def __init__(self, object_block):
-        self.uvs = DummyUVs()
-        self.bone_remap = DummyRemap()
+        """Complete definition of the Frontier Mesh."""
+
+        self.faces = None
         self.material_list = DummyMaterialsIndices()
         self.material_map = DummyFaceMaterials()
+        self.vertices = None
+        self.normals = None
+        self.uvs = DummyUVs()
+        self.rgb_like = None
         self.weights = DummyWeight()
-        objects = object_block.data
+        self.bone_remap = DummyRemap()
         attributes = {
             fblock.FaceBlock: "faces",
             fblock.MaterialList: "material_list",
@@ -161,7 +166,7 @@ class FMesh:
             fblock.RGBData: "rgb_like",
             fblock.WeightData: "weights",
             fblock.BoneMapData: "bone_remap",
-            # fblock.UnknBlock: "UnknBlock",
+            # fblock.UnknBlock: "unkn_block",
         }
         type_data = {
             fblock.FaceBlock: FFaces,
@@ -175,32 +180,18 @@ class FMesh:
             fblock.BoneMapData: FBoneRemap,
             # fblock.UnknBlock: "UnknBlock"
         }
-        for objectBlock in objects:
+        # Start assigning properties from data
+        tris_trip_repetition = None
+        for objectBlock in object_block.data:
             typing = fblock.FBlock.type_lookup(objectBlock.header.type)
             if typing in attributes:
-                setattr(self, attributes[typing], type_data[typing](objectBlock))
+                self.__setattr__(attributes[typing], type_data[typing](objectBlock))
             if typing is fblock.FaceBlock:
-                tristrip_repetition = self.calc_strip_lengths(objectBlock)
-        if hasattr(self, "material_map"):
-            # Not sure if the condition is necessary
+                tris_trip_repetition = self.calc_strip_lengths(objectBlock)
+        if self.material_map is not None and tris_trip_repetition is not None:
             self.material_map = self.decompose_material_list(
-                self.material_map, tristrip_repetition
+                self.material_map, tris_trip_repetition
             )
-
-        """
-        # Automatically assigns the map data.
-        
-        self.faces = FFaces(next(objects))
-        self.material_list = FMatList(next(objects))  # Material List
-        self.material_map = FMatPerTri(next(objects))  # Material Map
-        self.vertices = FVertices(next(objects))
-        self.normals = FNormals(next(objects))
-        self.uvs = FUVs(next(objects))
-        self.rgb_like = FRGB(next(objects))
-        self.weights = FWeights(next(objects))
-        self.bone_remap = FBoneRemap(next(objects))
-        # unknownBlock
-        """
 
     @staticmethod
     def calc_strip_lengths(face_block):
