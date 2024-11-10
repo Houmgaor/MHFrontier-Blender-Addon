@@ -10,6 +10,7 @@ from collections import OrderedDict
 from ..common.Cstruct import PyCStruct
 from ..common.FileLike import FileLike
 
+
 class Byte4(PyCStruct):
     fields = OrderedDict(
         [
@@ -157,15 +158,7 @@ class FBlock:
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
-        print(
-            base
-            + name
-            + ":"
-            + " "
-            + str(self.Header.count)
-            + " \t"
-            + hex(self.Header.type)
-        )
+        print(f"{base}{name}: {self.Header.count} \t{hex(self.Header.type)}")
         for datum in self.Data:
             datum.pretty_print(base + "\t")
 
@@ -294,9 +287,6 @@ class MaterialData(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        # print()
-        # for prop in self.fields:
-        #    print("%s: %s"%(prop,getattr(self,prop)))
         self.textureIndices = [TextureIndex() for i in range(self.textureCount)]
         list(map(lambda x: x.marshall(data), self.textureIndices))
 

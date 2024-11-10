@@ -246,29 +246,26 @@ class FModImporter:
     def fetch_texture(filepath):
         if os.path.exists(filepath):
             return bpy.data.images.load(filepath)
-        else:
-            raise FileNotFoundError("File %s not found" % filepath)
+        raise FileNotFoundError("File %s not found" % filepath)
 
     @staticmethod
     def search_textures(path, ix):
         """Search for textures in the folder."""
         model_path = Path(path)
+        in_children = [
+            f
+            for f in model_path.parents[1].glob("**/*")
+            if f.is_dir() and f > model_path.parent
+        ]
+        in_parents = [
+            f
+            for f in model_path.parents[1].glob("**/*")
+            if f.is_dir() and f < model_path.parent
+        ]
         candidates = [
             model_path.parent,
-            *sorted(
-                [
-                    f
-                    for f in model_path.parents[1].glob("**/*")
-                    if f.is_dir() and f > model_path.parent
-                ]
-            ),
-            *sorted(
-                [
-                    f
-                    for f in model_path.parents[1].glob("**/*")
-                    if f.is_dir() and f < model_path.parent
-                ]
-            ),
+            *sorted(in_children),
+            *sorted(in_parents),
         ]
         for directory in candidates:
             current = sorted(list(directory.rglob("*.png")))

@@ -7,18 +7,7 @@ Created on Fri Apr  5 23:03:36 2019
 import warnings
 from itertools import cycle
 
-from ..fmod.FBlock import FBlock
-from ..fmod.FBlock import (
-    FaceBlock,
-    MaterialList,
-    MaterialMap,
-    VertexData,
-    NormalsData,
-    UVData,
-    RGBData,
-    WeightData,
-    BoneMapData,
-)
+from ..fmod import FBlock
 from ..common.FileLike import FileLike
 
 
@@ -155,32 +144,34 @@ class FMesh:
         self.Weights = DummyWeight()
         objects = object_block.Data
         attributes = {
-            FaceBlock: "Faces",
-            MaterialList: "MaterialList",
-            MaterialMap: "MaterialMap",
-            VertexData: "Vertices",
-            NormalsData: "Normals",
-            UVData: "UVs",
-            RGBData: "RGBLike",
-            WeightData: "Weights",
-            BoneMapData: "BoneRemap",
-        }  # ,UnknBlock:"UnknBlock"}
+            FBlock.FaceBlock: "Faces",
+            FBlock.MaterialList: "MaterialList",
+            FBlock.MaterialMap: "MaterialMap",
+            FBlock.VertexData: "Vertices",
+            FBlock.NormalsData: "Normals",
+            FBlock.UVData: "UVs",
+            FBlock.RGBData: "RGBLike",
+            FBlock.WeightData: "Weights",
+            FBlock.BoneMapData: "BoneRemap",
+            # FBlock.UnknBlock:"UnknBlock",
+        }
         type_data = {
-            FaceBlock: FFaces,
-            MaterialList: FMatRemapList,
-            MaterialMap: FMatPerTri,
-            VertexData: FVertices,
-            NormalsData: FNormals,
-            UVData: FUVs,
-            RGBData: FRGB,
-            WeightData: FWeights,
-            BoneMapData: FBoneRemap,
-        }  # ,UnknBlock:"UnknBlock"}
+            FBlock.FaceBlock: FFaces,
+            FBlock.MaterialList: FMatRemapList,
+            FBlock.MaterialMap: FMatPerTri,
+            FBlock.VertexData: FVertices,
+            FBlock.NormalsData: FNormals,
+            FBlock.UVData: FUVs,
+            FBlock.RGBData: FRGB,
+            FBlock.WeightData: FWeights,
+            FBlock.BoneMapData: FBoneRemap,
+            # FBlock.UnknBlock:"UnknBlock"
+        }
         for objectBlock in objects:
-            typing = FBlock.type_lookup(objectBlock.Header.type)
+            typing = FBlock.FBlock.type_lookup(objectBlock.Header.type)
             if typing in attributes:
                 setattr(self, attributes[typing], type_data[typing](objectBlock))
-            if typing is FaceBlock:
+            if typing is FBlock.FaceBlock:
                 tristrip_repetition = self.calc_strip_lengths(objectBlock)
         if hasattr(self, "MaterialMap"):
             # Not sure if the condition is necessary

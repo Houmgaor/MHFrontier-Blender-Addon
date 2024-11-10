@@ -30,12 +30,12 @@ def minifloat_deserialize(x):
 
 
 def minifloat_serialize(x):
-    F16_EXPONENT_BITS = 0x1F
-    F16_EXPONENT_SHIFT = 10
-    F16_EXPONENT_BIAS = 15
-    F16_MANTISSA_BITS = 0x3FF
-    F16_MANTISSA_SHIFT = 23 - F16_EXPONENT_SHIFT
-    F16_MAX_EXPONENT = F16_EXPONENT_BITS << F16_EXPONENT_SHIFT
+    f16_exponent_bits = 0x1F
+    f16_exponent_shift = 10
+    f16_exponent_bias = 15
+    f16_mantissa_bits = 0x3FF
+    f16_mantissa_shift = 23 - f16_exponent_shift
+    f16_max_exponent = f16_exponent_bits << f16_exponent_shift
     a = struct.pack(">f", x)
     b = hexlify(a)
     f32 = int(b, 16)
@@ -43,15 +43,15 @@ def minifloat_serialize(x):
     exponent = ((f32 >> 23) & 0xFF) - 127
     mantissa = f32 & 0x007FFFFF
     if exponent == 128:
-        f16 = sign | F16_MAX_EXPONENT
+        f16 = sign | f16_max_exponent
         if mantissa:
-            f16 |= mantissa & F16_MANTISSA_BITS
+            f16 |= mantissa & f16_mantissa_bits
     elif exponent > 15:  # hack
-        f16 = sign | F16_MAX_EXPONENT
+        f16 = sign | f16_max_exponent
     elif exponent >= -15:  # hack
-        exponent += F16_EXPONENT_BIAS
-        mantissa >>= F16_MANTISSA_SHIFT
-        f16 = sign | exponent << F16_EXPONENT_SHIFT | mantissa
+        exponent += f16_exponent_bias
+        mantissa >>= f16_mantissa_shift
+        f16 = sign | exponent << f16_exponent_shift | mantissa
     else:
         f16 = sign
     return struct.pack("H", f16)
@@ -116,80 +116,83 @@ class PyCStruct:
                 raise AssertionError("Attribute %s is not initialized." % attr)
 
 
-class Cstruct:
-    deserializer = lambda y: {
-        "deserializer": lambda x: struct.unpack(y, x)[0],
-        "serializer": lambda x: struct.pack(y, x),
+def deserializer(data_format, size):
+    """Prepares the deserialization of data with a specific format."""
+    return {
+        "deserializer": lambda x: struct.unpack(data_format, x)[0],
+        "serializer": lambda x: struct.pack(data_format, x),
+        "size": size,
     }
+
+
+class Cstruct:
     CTypes = {
-        "byte": {"size": 1, **deserializer("b")},
-        "int8": {"size": 1, **deserializer("b")},
-        "ubyte": {"size": 1, **deserializer("B")},
-        "uint8": {"size": 1, **deserializer("B")},
-        "short": {"size": 2, **deserializer("h")},
-        "int16": {"size": 2, **deserializer("h")},
-        "ushort": {"size": 2, **deserializer("H")},
-        "uint16": {"size": 2, **deserializer("H")},
-        "long": {"size": 4, **deserializer("i")},
-        "int32": {"size": 4, **deserializer("i")},
-        "int": {"size": 4, **deserializer("i")},
-        "ulong": {"size": 4, **deserializer("I")},
-        "uint32": {"size": 4, **deserializer("I")},
-        "uint": {"size": 4, **deserializer("I")},
-        "quad": {"size": 8, **deserializer("q")},
-        "int64": {"size": 8, **deserializer("q")},
-        "uquad": {"size": 8, **deserializer("Q")},
-        "uint64": {"size": 8, **deserializer("Q")},
+        "byte": deserializer("b", 1),
+        "int8": deserializer("b", 1),
+        "ubyte": deserializer("B", 1),
+        "uint8": deserializer("B", 1),
+        "short": deserializer("h", 2),
+        "int16": deserializer("h", 2),
+        "ushort": deserializer("H", 2),
+        "uint16": deserializer("H", 2),
+        "long": deserializer("i", 4),
+        "int32": deserializer("i", 4),
+        "int": deserializer("i", 4),
+        "ulong": deserializer("I", 4),
+        "uint32": deserializer("I", 4),
+        "uint": deserializer("I", 4),
+        "quad": deserializer("q", 8),
+        "int64": deserializer("q", 8),
+        "uquad": deserializer("Q", 8),
+        "uint64": deserializer("Q", 8),
         "hfloat": {
             "size": 2,
             "deserializer": minifloat_deserialize,
             "serializer": minifloat_serialize,
         },
-        "float": {"size": 4, **deserializer("f")},
-        "double": {"size": 8, **deserializer("d")},
-        "char": {"size": 1, **deserializer("c")},
-        "bool": {"size": 1, **deserializer("b")},
+        "float": deserializer("f", 4),
+        "double": deserializer("d", 8),
+        "char": deserializer("c", 1),
+        "bool": deserializer("b", 1),
     }
     StructTypes = {}
 
     @staticmethod
-    def isArrayType(typeStr):
-        return "[" in typeStr and (
-            typeStr[: typeStr.index("[")] in Cstruct.CTypes
-            or typeStr[: typeStr.index("[")] in Cstruct.StructTypes
+    def is_array_type(type_str):
+        return "[" in type_str and (
+            type_str[: type_str.index("[")] in Cstruct.CTypes
+            or type_str[: type_str.index("[")] in Cstruct.StructTypes
         )
 
     @staticmethod
-    def arrayType(typeStr):
-        base = typeStr[: typeStr.index("[")]
-        size = typeStr[typeStr.index("[") + 1 : typeStr.index("]")]
-        # baseTypeCall = Cstruct.CTypes if base in Cstruct.CTypes else Cstruct.StructTypes
-        baseTypeCall = Cstruct.CTypes
+    def array_type(type_str):
+        base = type_str[: type_str.index("[")]
+        size = type_str[type_str.index("[") + 1 : type_str.index("]")]
+        # base_type_call = Cstruct.CTypes if base in Cstruct.CTypes else Cstruct.StructTypes
+        base_type_call = Cstruct.CTypes
 
-        intSize = int(size)
-        return (
-            {
-                "size": intSize * baseTypeCall[base]["size"],
+        int_size = int(size)
+        if base != "char":
+            return {
+                "size": int_size * base_type_call[base]["size"],
                 "deserializer": lambda x: [
-                    baseTypeCall[base]["deserializer"](chunk)
-                    for chunk in chunks(x, baseTypeCall[base]["size"])
+                    base_type_call[base]["deserializer"](chunk)
+                    for chunk in chunks(x, base_type_call[base]["size"])
                 ],
                 "serializer": lambda x: b"".join(
-                    map(baseTypeCall[base]["serializer"], x)
+                    map(base_type_call[base]["serializer"], x)
                 ),
             }
-            if base != "char"
-            else {
-                "size": intSize * baseTypeCall[base]["size"],
-                "deserializer": lambda x: "".join(
-                    [
-                        (baseTypeCall[base]["deserializer"](chunk)).decode("ascii")
-                        for chunk in chunks(x, baseTypeCall[base]["size"])
-                    ]
-                ),
-                "serializer": lambda x: x.encode("ascii").ljust(intSize, b"\x00"),
-            }
-        )
+        return {
+            "size": int_size * base_type_call[base]["size"],
+            "deserializer": lambda x: "".join(
+                [
+                    (base_type_call[base]["deserializer"](chunk)).decode("ascii")
+                    for chunk in chunks(x, base_type_call[base]["size"])
+                ]
+            ),
+            "serializer": lambda x: x.encode("ascii").ljust(int_size, b"\x00"),
+        }
 
     def __init__(self, fields):
         self.struct = OrderedDict()
@@ -197,8 +200,8 @@ class Cstruct:
         for name in fields:
             if fields[name] in Cstruct.CTypes:
                 self.struct[name] = Cstruct.CTypes[fields[name]]
-            elif Cstruct.isArrayType(fields[name]):
-                self.struct[name] = Cstruct.arrayType(fields[name])
+            elif Cstruct.is_array_type(fields[name]):
+                self.struct[name] = Cstruct.array_type(fields[name])
             else:
                 raise ValueError(
                     "%s Type is not C Struct class compatible." % fields[name]
@@ -223,8 +226,8 @@ class Cstruct:
 
 
 class Mod3Container:
-    def __init__(self, Mod3Class, containeeCount=0):
-        self.mod3Array = [Mod3Class() for _ in range(containeeCount)]
+    def __init__(self, mod3class, containee_count=0):
+        self.mod3Array = [mod3class() for _ in range(containee_count)]
 
     def marshall(self, data):
         [x.marshall(data) for x in self.mod3Array]
@@ -256,7 +259,7 @@ class Mod3Container:
     def pop(self, ix):
         self.mod3Array.pop(ix)
 
-    def Count(self):
+    def count(self):
         return len(self.mod3Array)
 
     def verify(self):

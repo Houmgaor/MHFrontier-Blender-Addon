@@ -7,6 +7,7 @@ Created on Sun Dec 29 21:50:00 2019
 from ..fmod.FBlock import FBlock
 from ..common.FileLike import FileLike
 
+
 class FBone:
     def __init__(self, frontier_bone):
         for field in frontier_bone.Data[0].fields:

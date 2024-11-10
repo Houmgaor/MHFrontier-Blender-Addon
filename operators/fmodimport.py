@@ -6,27 +6,27 @@ Created on Wed Mar  6 14:09:29 2019
 """
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty
-from bpy.types import Operator
 
 from ..fmod import FModImporterLayer
 
 
-class ImportFMOD(Operator, ImportHelper):
+class ImportFMOD(bpy.types.Operator, ImportHelper):
     bl_idname = "custom_import.import_mhf_fmod"
     bl_label = "Load MHF FMOD file (.fmod)"
     bl_options = {"REGISTER", "PRESET", "UNDO"}
 
     # ImportHelper mixin class uses this
     filename_ext = ".fmod"
-    filter_glob = StringProperty(default="*.fmod", options={"HIDDEN"}, maxlen=255)
+    filter_glob = bpy.props.StringProperty(
+        default="*.fmod", options={"HIDDEN"}, maxlen=255
+    )
 
-    clear_scene = BoolProperty(
+    clear_scene = bpy.props.BoolProperty(
         name="Clear scene before import.",
         description="Clears all contents before importing",
         default=True,
     )
-    import_textures = BoolProperty(
+    import_textures = bpy.props.BoolProperty(
         name="Import Textures.",
         description="Imports textures with a greedy search algorithm.",
         default=True,
