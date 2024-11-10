@@ -147,24 +147,24 @@ class FBlockHeader(PyCStruct):
 
 class FBlock:
     def __init__(self, parent=None):
-        self.Header = FBlockHeader()
-        self.Data = None
-        self.Parent = parent
+        self.header = FBlockHeader()
+        self.data = None
+        self.parent = parent
 
     def marshall(self, data):
-        self.Header.marshall(data)
-        sub_data = FileLike(data.read(self.Header.size - len(self.Header)))
-        self.Data = [self.get_type() for _ in range(self.Header.count)]
-        [datum.marshall(sub_data) for datum in self.Data]
+        self.header.marshall(data)
+        sub_data = FileLike(data.read(self.header.size - len(self.header)))
+        self.data = [self.get_type() for _ in range(self.header.count)]
+        [datum.marshall(sub_data) for datum in self.data]
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
-        print(f"{base}{name}: {self.Header.count} \t{hex(self.Header.type)}")
-        for datum in self.Data:
+        print(f"{base}{name}: {self.header.count} \t{hex(self.header.type)}")
+        for datum in self.data:
             datum.pretty_print(base + "\t")
 
     def get_type(self):
-        return self.type_lookup(self.Header.type)()
+        return self.type_lookup(self.header.type)()
 
     @staticmethod
     def type_lookup(value):
@@ -288,7 +288,7 @@ class MaterialData(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        self.textureIndices = [TextureIndex() for i in range(self.textureCount)]
+        self.textureIndices = [TextureIndex() for _ in range(self.textureCount)]
         list(map(lambda x: x.marshall(data), self.textureIndices))
 
     """
@@ -335,8 +335,6 @@ class DataContainer:
         self.Data.marshall(data)
 
     def pretty_print(self, base=""):
-        # name = type(self).__name__
-        # print(base+name)
         pass
 
 

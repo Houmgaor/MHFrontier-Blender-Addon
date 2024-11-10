@@ -8,7 +8,12 @@ Created on Wed Mar  6 13:38:47 2019
 """
 import bpy
 
-from . import operators
+from .operators import (
+    fmod_import,
+    fskl_import,
+    fskl_convert,
+)
+
 
 content = bytes("", "UTF-8")
 bl_info = {
@@ -29,44 +34,44 @@ def register():
     You will also get a new feature "Convert FSKL to Armature".
     """
     # Register the FMOD (Frontier Model) file import
-    bpy.utils.register_class(operators.fmod_import.ImportFMOD)
+    bpy.utils.register_class(fmod_import.ImportFMOD)
     # New structure since Blender 2.8x
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.append(operators.fmod_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.append(fmod_import.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.append(operators.fmod_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.append(fmod_import.menu_func_import)
 
     # Register the FSKL (Frontier Skeleton) file import
-    bpy.utils.register_class(operators.fskl_import.ImportFSKL)
+    bpy.utils.register_class(fskl_import.ImportFSKL)
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.append(operators.fskl_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.append(fskl_import.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.append(operators.fskl_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.append(fskl_import.menu_func_import)
 
     # Register the creation of the Blender Armature
-    bpy.utils.register_class(operators.fskl_convert.ConvertFSKL)
-    bpy.types.VIEW3D_MT_object.append(operators.fskl_convert.menu_func)
+    bpy.utils.register_class(fskl_convert.ConvertFSKL)
+    bpy.types.VIEW3D_MT_object.append(fskl_convert.menu_func)
 
 
 def unregister():
     """Remove the FMOD/FSKL add-on."""
-    bpy.utils.unregister_class(operators.fmod_import.ImportFMOD)
+    bpy.utils.unregister_class(fmod_import.ImportFMOD)
     # New structure since Blender 2.8x
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.remove(operators.fmod_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.remove(fmod_import.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.remove(operators.fmod_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.remove(fmod_import.menu_func_import)
 
     # Frontier Skeleton import
-    bpy.utils.unregister_class(operators.fskl_import.ImportFSKL)
+    bpy.utils.unregister_class(fskl_import.ImportFSKL)
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.remove(operators.fskl_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.remove(fskl_import.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.remove(operators.fskl_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.remove(fskl_import.menu_func_import)
 
     # Unregister Armature creation
-    bpy.utils.unregister_class(operators.fskl_convert.ConvertFSKL)
-    bpy.types.VIEW3D_MT_object.remove(operators.fskl_convert.menu_func)
+    bpy.utils.unregister_class(fskl_convert.ConvertFSKL)
+    bpy.types.VIEW3D_MT_object.remove(fskl_convert.menu_func)
 
 
 if __name__ == "__main__":

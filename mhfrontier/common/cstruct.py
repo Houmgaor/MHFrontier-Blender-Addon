@@ -58,19 +58,19 @@ def minifloat_serialize(x):
 
 
 class PyCStruct:
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self, data=None, _parent=None, **kwargs):
         self.CStruct = Cstruct(self.fields)
         if data is not None:
             self.marshall(data)
         elif kwargs:
-            fieldskeys = set(self.fields.keys())
-            entrykeys = set(kwargs.keys())
-            if fieldskeys == entrykeys:
+            fields_keys = set(self.fields.keys())
+            entry_keys = set(kwargs.keys())
+            if fields_keys == entry_keys:
                 [self.__setattr__(attr, value) for attr, value in kwargs.items()]
             else:
-                if fieldskeys > entrykeys:
+                if fields_keys > entry_keys:
                     raise AttributeError("Missing fields to Initialize")
-                if fieldskeys < entrykeys:
+                if fields_keys < entry_keys:
                     raise AttributeError("Excessive Fields passed")
                 raise AttributeError("Field Mismatch")
 
@@ -168,7 +168,6 @@ class Cstruct:
     def array_type(type_str):
         base = type_str[: type_str.index("[")]
         size = type_str[type_str.index("[") + 1 : type_str.index("]")]
-        # base_type_call = Cstruct.CTypes if base in Cstruct.CTypes else Cstruct.StructTypes
         base_type_call = Cstruct.CTypes
 
         int_size = int(size)

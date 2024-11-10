@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
 """
+Definition of importer operator for FSKL file.
+
 Created on Mon Dec 30 01:10:11 2019
 
 @author: AsteriskAmpersand
 """
+
 import bpy
 import bpy_extras
 

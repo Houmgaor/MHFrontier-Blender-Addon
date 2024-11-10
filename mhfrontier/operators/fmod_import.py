@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
 """
+Importer operator for FMOD file.
+
 Created on Wed Mar  6 14:09:29 2019
 
 @author: AsteriskAmpersand
 """
+
 import bpy
 import bpy_extras
 

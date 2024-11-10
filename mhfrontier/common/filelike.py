@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sat Feb  9 00:55:14 2019
 
@@ -8,6 +7,7 @@ Created on Sat Feb  9 00:55:14 2019
 
 class FileLike:
     """Mimics stream reading behavior for any array of data."""
+
     def __init__(self, data_array):
         self.i = 0
         self.data = data_array

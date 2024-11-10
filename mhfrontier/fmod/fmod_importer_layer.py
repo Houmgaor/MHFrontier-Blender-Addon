@@ -24,7 +24,7 @@ class FModImporter:
         bpy.context.scene.render.engine = "CYCLES"
         fmod = FModel(fmod_path)
         meshes = fmod.traditional_mesh_structure()
-        materials = fmod.Materials
+        materials = fmod.materials
         blender_materials = {}
         for ix, mesh in enumerate(meshes):
             FModImporter.import_mesh(ix, mesh, blender_materials)

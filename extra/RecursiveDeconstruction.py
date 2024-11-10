@@ -7,8 +7,8 @@ Created on Thu Apr 04 13:57:02 2019
 
 from collections import OrderedDict
 
-from addon.common.cstruct import PyCStruct
-from addon.common.filelike import FileLike
+from mhfrontier.common.cstruct import PyCStruct
+from mhfrontier.common.filelike import FileLike
 
 
 class Byte4(PyCStruct):
@@ -159,7 +159,7 @@ class UnknBlock(FBlock):
 
 class DataContainer:
     def __init__(self, parent):
-        self.count = parent.Header.count
+        self.count = parent.header.count
 
     def marshall(self, data):
         self.Data = [self.dataType() for _ in range(self.count)]

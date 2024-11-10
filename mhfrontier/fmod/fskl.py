@@ -12,8 +12,8 @@ class FBone:
     """Simple Frontier bone definition."""
 
     def __init__(self, frontier_bone):
-        for field in frontier_bone.Data[0].fields:
-            setattr(self, field, getattr(frontier_bone.Data[0], field))
+        for field in frontier_bone.data[0].fields:
+            setattr(self, field, getattr(frontier_bone.data[0], field))
 
 
 class FSkeleton:
@@ -23,11 +23,11 @@ class FSkeleton:
         with open(file_path, "rb") as modelFile:
             frontier_file = fblock.FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
-        bones = frontier_file.Data[1:]
-        self.Skeleton = {}
+        bones = frontier_file.data[1:]
+        self.skeleton = {}
         for fileBone in bones:
             frontier_bone = FBone(fileBone)
-            self.Skeleton[frontier_bone.nodeID] = frontier_bone
+            self.skeleton[frontier_bone.nodeID] = frontier_bone
 
     def skeleton_structure(self):
-        return self.Skeleton
+        return self.skeleton
