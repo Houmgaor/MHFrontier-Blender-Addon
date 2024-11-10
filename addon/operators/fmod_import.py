@@ -7,7 +7,7 @@ Created on Wed Mar  6 14:09:29 2019
 import bpy
 import bpy_extras
 
-from ..fmod import FModImporterLayer
+from ..fmod import fmod_importer_layer
 
 
 class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -41,7 +41,7 @@ class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             print(error)
         bpy.ops.object.select_all(action="DESELECT")
 
-        importer = FModImporterLayer.FModImporter()
+        importer = fmod_importer_layer.FModImporter()
         if self.clear_scene:
             importer.clear_scene()
         importer.maximize_clipping()
@@ -51,4 +51,5 @@ class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
 
 def menu_func_import(self, _context):
+    """Add the operator."""
     self.layout.operator(ImportFMOD.bl_idname, text="MHF FMOD (.fmod)")

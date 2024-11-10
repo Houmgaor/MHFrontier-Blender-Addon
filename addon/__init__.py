@@ -37,15 +37,15 @@ def register():
         bpy.types.INFO_MT_file_import.append(operators.fmod_import.menu_func_import)
 
     # Register the FSKL (Frontier Skeleton) file import
-    bpy.utils.register_class(operators.fsklimport.ImportFSKL)
+    bpy.utils.register_class(operators.fskl_import.ImportFSKL)
     if bpy.app.version >= (2, 8):
-        bpy.types.TOPBAR_MT_file_import.append(operators.fsklimport.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.append(operators.fskl_import.menu_func_import)
     else:
-        bpy.types.INFO_MT_file_import.append(operators.fsklimport.menu_func_import)
+        bpy.types.INFO_MT_file_import.append(operators.fskl_import.menu_func_import)
 
     # Register the creation of the Blender Armature
-    bpy.utils.register_class(operators.fsklConverter.ConvertFSKL)
-    bpy.types.VIEW3D_MT_object.append(operators.fsklConverter.menu_func)
+    bpy.utils.register_class(operators.fskl_convert.ConvertFSKL)
+    bpy.types.VIEW3D_MT_object.append(operators.fskl_convert.menu_func)
 
 
 def unregister():

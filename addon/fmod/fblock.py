@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+Definition of blocks from Frontier files.
+
 Created on Thu Apr 04 13:57:02 2019
 
 @author: *&

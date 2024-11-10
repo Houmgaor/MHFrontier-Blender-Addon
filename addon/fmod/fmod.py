@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+Frontier 3D model file format utility.
+
 Created on Fri Apr  5 23:03:36 2019
 
 @author: AsteriskAmpersand

@@ -9,12 +9,14 @@ from ..common.filelike import FileLike
 
 
 class FBone:
+    """Simple Frontier bone definition."""
     def __init__(self, frontier_bone):
         for field in frontier_bone.Data[0].fields:
             setattr(self, field, getattr(frontier_bone.Data[0], field))
 
 
 class FSkeleton:
+    """Start the definition of a Frontier Skeleton from file."""
     def __init__(self, file_path):
         with open(file_path, "rb") as modelFile:
             frontier_file = fblock.FBlock()

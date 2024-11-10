@@ -17,6 +17,7 @@ from ..fmod.fmod import FModel
 
 
 class FModImporter:
+    """Prepare a Blender operator for 3D models import."""
     @staticmethod
     def execute(fmod_path, import_textures):
         bpy.context.scene.render.engine = "CYCLES"

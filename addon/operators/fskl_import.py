@@ -7,7 +7,7 @@ Created on Mon Dec 30 01:10:11 2019
 import bpy
 import bpy_extras
 
-from ..fmod import FSklImporterLayer
+from ..fmod import fskl_importer_layer
 
 
 class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -30,10 +30,11 @@ class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         except RuntimeError as error:
             print(error)
         bpy.ops.object.select_all(action="DESELECT")
-        importer = FSklImporterLayer.FSklImporter()
+        importer = fskl_importer_layer.FSklImporter()
         importer.execute(self.properties.filepath)
         return {"FINISHED"}
 
 
 def menu_func_import(self, _context):
+    """Add the operator."""
     self.layout.operator(ImportFSKL.bl_idname, text="MHF FSKL (.fskl)")
