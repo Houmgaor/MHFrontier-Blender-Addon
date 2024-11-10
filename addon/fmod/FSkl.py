@@ -4,7 +4,7 @@ Created on Sun Dec 29 21:50:00 2019
 
 @author: AsteriskAmpersand
 """
-from ..fmod.FBlock import FBlock
+from ..fmod import fblock
 from ..common.filelike import FileLike
 
 
@@ -17,7 +17,7 @@ class FBone:
 class FSkeleton:
     def __init__(self, file_path):
         with open(file_path, "rb") as modelFile:
-            frontier_file = FBlock()
+            frontier_file = fblock.FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
         bones = frontier_file.Data[1:]
         self.Skeleton = {}

@@ -7,7 +7,7 @@ Created on Fri Apr  5 23:03:36 2019
 import warnings
 from itertools import cycle
 
-from ..fmod import FBlock
+from ..fmod import fblock
 from ..common.filelike import FileLike
 
 
@@ -144,34 +144,34 @@ class FMesh:
         self.Weights = DummyWeight()
         objects = object_block.Data
         attributes = {
-            FBlock.FaceBlock: "Faces",
-            FBlock.MaterialList: "MaterialList",
-            FBlock.MaterialMap: "MaterialMap",
-            FBlock.VertexData: "Vertices",
-            FBlock.NormalsData: "Normals",
-            FBlock.UVData: "UVs",
-            FBlock.RGBData: "RGBLike",
-            FBlock.WeightData: "Weights",
-            FBlock.BoneMapData: "BoneRemap",
-            # FBlock.UnknBlock:"UnknBlock",
+            fblock.FaceBlock: "Faces",
+            fblock.MaterialList: "MaterialList",
+            fblock.MaterialMap: "MaterialMap",
+            fblock.VertexData: "Vertices",
+            fblock.NormalsData: "Normals",
+            fblock.UVData: "UVs",
+            fblock.RGBData: "RGBLike",
+            fblock.WeightData: "Weights",
+            fblock.BoneMapData: "BoneRemap",
+            # fblock.UnknBlock: "UnknBlock",
         }
         type_data = {
-            FBlock.FaceBlock: FFaces,
-            FBlock.MaterialList: FMatRemapList,
-            FBlock.MaterialMap: FMatPerTri,
-            FBlock.VertexData: FVertices,
-            FBlock.NormalsData: FNormals,
-            FBlock.UVData: FUVs,
-            FBlock.RGBData: FRGB,
-            FBlock.WeightData: FWeights,
-            FBlock.BoneMapData: FBoneRemap,
-            # FBlock.UnknBlock:"UnknBlock"
+            fblock.FaceBlock: FFaces,
+            fblock.MaterialList: FMatRemapList,
+            fblock.MaterialMap: FMatPerTri,
+            fblock.VertexData: FVertices,
+            fblock.NormalsData: FNormals,
+            fblock.UVData: FUVs,
+            fblock.RGBData: FRGB,
+            fblock.WeightData: FWeights,
+            fblock.BoneMapData: FBoneRemap,
+            # fblock.UnknBlock: "UnknBlock"
         }
         for objectBlock in objects:
-            typing = FBlock.FBlock.type_lookup(objectBlock.Header.type)
+            typing = fblock.FBlock.type_lookup(objectBlock.Header.type)
             if typing in attributes:
                 setattr(self, attributes[typing], type_data[typing](objectBlock))
-            if typing is FBlock.FaceBlock:
+            if typing is fblock.FaceBlock:
                 tristrip_repetition = self.calc_strip_lengths(objectBlock)
         if hasattr(self, "MaterialMap"):
             # Not sure if the condition is necessary
@@ -249,7 +249,7 @@ class FMat:
 class FModel:
     def __init__(self, file_path):
         with open(file_path, "rb") as modelFile:
-            frontier_file = FBlock.FBlock()
+            frontier_file = fblock.fblock()
             frontier_file.marshall(FileLike(modelFile.read()))
         meshes = frontier_file.Data[1].Data
         materials = frontier_file.Data[2].Data

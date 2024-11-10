@@ -7,8 +7,8 @@ Created on Thu Apr 04 13:57:02 2019
 
 from collections import OrderedDict
 
-from addon.common.Cstruct import PyCStruct
-from addon.common.FileLike import FileLike
+from addon.common.cstruct import PyCStruct
+from addon.common.filelike import FileLike
 
 
 class Byte4(PyCStruct):
