@@ -102,8 +102,6 @@ class WeightData(PyCStruct):
         [w.marshall(data) for w in self.weights]
 
     def pretty_print(self, base=""):
-        # name = type(self).__name__
-        # print(base+name)
         pass
 
 
@@ -146,16 +144,28 @@ class FBlockHeader(PyCStruct):
 
 
 class FBlock:
+    """Frontier data Block."""
+
     def __init__(self, parent=None):
+        """Define block from parent with empty data."""
+
         self.header = FBlockHeader()
         self.data = None
         self.parent = parent
 
     def marshall(self, data):
+        """
+        Assign the values to the data block.
+
+        :param data: Data to read.
+        :type data: mhfrontier.common.filelike.FileLike
+        """
+
         self.header.marshall(data)
         sub_data = FileLike(data.read(self.header.size - len(self.header)))
         self.data = [self.get_type() for _ in range(self.header.count)]
-        [datum.marshall(sub_data) for datum in self.data]
+        for datum in self.data:
+            datum.marshall(sub_data)
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
@@ -168,6 +178,8 @@ class FBlock:
 
     @staticmethod
     def type_lookup(value):
+        """Return the block corresponding to value."""
+
         types = {
             0x00020000: InitBlock,
             0x00000001: FileBlock,
@@ -314,8 +326,8 @@ class InitData(PyCStruct):
 
 class InitBlock(FBlock):
     def marshall(self, data):
-        self.Data = InitData()
-        self.Data.marshall(data)
+        self.data = InitData()
+        self.data.marshall(data)
 
     def pretty_print(self, base=""):
         pass
@@ -323,7 +335,7 @@ class InitBlock(FBlock):
 
 class UnknBlock(FBlock):
     def marshall(self, data):
-        self.Data = data
+        self.data = data
 
     def pretty_print(self, base=""):
         pass
@@ -331,8 +343,8 @@ class UnknBlock(FBlock):
 
 class DataContainer:
     def marshall(self, data):
-        self.Data = self.dataType()
-        self.Data.marshall(data)
+        self.data = self.dataType()
+        self.data.marshall(data)
 
     def pretty_print(self, base=""):
         pass

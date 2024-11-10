@@ -20,6 +20,11 @@ class FSkeleton:
     """Start the definition of a Frontier Skeleton from file."""
 
     def __init__(self, file_path):
+        """
+        Read the FSKL file.
+
+        :param str file_path: FSKL file path.
+        """
         with open(file_path, "rb") as modelFile:
             frontier_file = fblock.FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
@@ -30,4 +35,8 @@ class FSkeleton:
             self.skeleton[frontier_bone.nodeID] = frontier_bone
 
     def skeleton_structure(self):
+        """
+        Skeleton of Frontier bones.
+
+        :return dict[FBone]: Skeleton definition"""
         return self.skeleton

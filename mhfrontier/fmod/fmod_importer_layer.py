@@ -32,21 +32,28 @@ class FModImporter:
             FModImporter.import_textures(materials, fmod_path, blender_materials)
 
     @staticmethod
-    def import_mesh(ix, mesh, blender_materials):
+    def import_mesh(index, mesh, blender_materials):
+        """
+        Import the mesh.
+
+        :param int index: Mesh index
+        :param dict mesh: fmesh with standard structure
+        :param blender_materials: Materials associated with the mesh.
+        """
         mesh_objects = []
         bpy.ops.object.select_all(action="DESELECT")
 
         # Geometry
         blender_mesh, blender_object = FModImporter.create_mesh(
-            "FModMeshpart %03d" % (ix,), mesh
+            "FModMeshpart %03d" % (index,), mesh
         )
         # Normals Handling
         FModImporter.set_normals(mesh["normals"], blender_mesh)
         # UVs
         if bpy.app.version >= (2, 8):
             # Blender 2.8+
+            blender_object.data.uv_layers.new(name="UV0")
             FModImporter.create_texture_layer_from_obj(
-                blender_object,
                 blender_mesh,
                 mesh["uvs"],
                 mesh["materials"],
@@ -70,8 +77,18 @@ class FModImporter:
 
     @staticmethod
     def create_mesh(name, mesh_part):
+        """
+        Create a new mesh.
+
+        :param str name: Name for the mesh
+        :param dict mesh_part: Mesh data with vertices and triangles
+
+        :return: Mesh and associated object.
+        :rtype: tuple[bpy.types.Mesh, bpy.types.Object]
+        """
         blender_mesh = bpy.data.meshes.new("%s" % (name,))
-        blender_mesh.from_pydata(mesh_part["vertices"], [], mesh_part["faces"])
+        scaled_vertices = [tuple(i / 100 for i in v) for v in mesh_part["vertices"]]
+        blender_mesh.from_pydata(scaled_vertices, [], mesh_part["faces"])
         blender_mesh.update()
         blender_object = bpy.data.objects.new("%s" % (name,), blender_mesh)
         # Blender 2.8+
@@ -84,26 +101,26 @@ class FModImporter:
 
     @staticmethod
     def create_texture_layer_from_obj(
-        blender_obj, blender_mesh, uv, material_list, face_materials, blender_materials
+        blender_mesh, uv, material_list, face_materials, blender_materials
     ):
-        """General function to create texture, for Blender 2.8+."""
+        """
+        Create a texture.
+
+        :param bmesh blender_mesh: bmesh to use.
+        :param list uv: Object UV maps
+        :param list[int] material_list: List of materials indices
+        :param list[int] face_materials: List of face material indices
+        :param list[int] blender_materials: Blender materials already existing.
+        """
         for material in material_list:
-            material_name = "FrontierMaterial-%03d" % material
             if material not in blender_materials:
-                mat = bpy.data.materials.new(name=material_name)
-                blender_materials[material] = mat
-            mat = blender_materials[material]
-            blender_mesh.materials.append(mat)
-        blender_obj.data.uv_layers.new(name="UV0")
+                material_name = "FrontierMaterial-%03d" % material
+                blender_materials[material] = bpy.data.materials.new(name=material_name)
+            blender_mesh.materials.append(blender_materials[material])
         blender_mesh.update()
         blender_b_mesh = bmesh.new()
         blender_b_mesh.from_mesh(blender_mesh)
-        try:
-            uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
-        except AttributeError as error:
-            # Not sure why this happens. Old Blender version?
-            uv_layer = blender_b_mesh.loops.layers.UV["UV0"]
-            print(error)
+        uv_layer = blender_b_mesh.loops.layers.uv["UV0"]
         blender_b_mesh.faces.ensure_lookup_table()
         for face in blender_b_mesh.faces:
             for loop in face.loops:
@@ -111,19 +128,16 @@ class FModImporter:
             face.material_index = face_materials[face.index]
         blender_b_mesh.to_mesh(blender_mesh)
         blender_mesh.update()
-        return
 
     @staticmethod
     def create_texture_layer(
         blender_mesh, uv, material_list, face_materials, blender_materials
     ):
         for material in material_list:
-            material_name = "FrontierMaterial-%03d" % material
             if material not in blender_materials:
-                mat = bpy.data.materials.new(name=material_name)
-                blender_materials[material] = mat
-            mat = blender_materials[material]
-            blender_mesh.materials.append(mat)
+                material_name = "FrontierMaterial-%03d" % material
+                blender_materials[material] = bpy.data.materials.new(name=material_name)
+            blender_mesh.materials.append(blender_materials[material])
         blender_mesh.uv_textures.new("UV0")
         blender_mesh.update()
         blender_b_mesh = bmesh.new()
