@@ -6,8 +6,7 @@ A model importer for Monster Hunter Frontier FMod Files into Blender.
 
 Install as any Blender add-on:
 
-- Download this repo as
-  ZIP ([Code > Download ZIP](https://github.com/Houmgaor/Monster-Hunter-Frontier-Importer/archive/refs/heads/main.zip))
+- Download this repo as a ZIP from the [latest release](https://github.com/Houmgaor/MHFrontier-Blender-Addon/releases/)
 - Open Blender, ``Edit > Preferences > Add-ons > Install...`` select the ZIP folder.
 
 ## Usage
@@ -29,6 +28,11 @@ Convert the skeleton to an armature, ``Object > Create Armature from FSKL Tree``
 Your model is imported with the textures, and you can change its pose.
 
 ![Disufiroa rendered](https://github.com/user-attachments/assets/fe1c5bbb-baac-4b08-84df-63fbdb9a2e5e)
+
+## Build
+
+The important part of the addon is in the addon folder.
+You only need to create a ZIP of this folder to build it.
 
 ## Get FMOD/FSKL files
 
