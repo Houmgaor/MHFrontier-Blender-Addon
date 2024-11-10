@@ -6,11 +6,12 @@ Created on Thu Apr 04 13:57:02 2019
 """
 
 from collections import OrderedDict
-from Cstruct import PyCStruct
-from FileLike import FileLike
+
+from mhfrontier.common.cstruct import PyCStruct
+from mhfrontier.common.filelike import FileLike
 
 
-class byte4(PyCStruct):
+class Byte4(PyCStruct):
     fields = OrderedDict(
         [
             ("array", "byte[4]"),
@@ -18,7 +19,7 @@ class byte4(PyCStruct):
     )
 
 
-class uv(PyCStruct):
+class Uv(PyCStruct):
     fields = OrderedDict(
         [
             ("u", "float"),
@@ -27,14 +28,14 @@ class uv(PyCStruct):
     )
 
 
-class vect3(PyCStruct):
+class Vect3(PyCStruct):
     fields = OrderedDict([("x", "float"), ("y", "float"), ("z", "float")])
 
 
-position = vect3
+position = Vect3
 
 
-class vect4(PyCStruct):
+class Vect4(PyCStruct):
     fields = OrderedDict(
         [
             ("x", "float"),
@@ -45,11 +46,11 @@ class vect4(PyCStruct):
     )
 
 
-normal = vect4
-tangent = vect4
+normal = Vect4
+tangent = Vect4
 
 
-class vertexId(PyCStruct):
+class VertexId(PyCStruct):
     fields = OrderedDict(
         [
             ("id", "uint32"),
@@ -57,7 +58,7 @@ class vertexId(PyCStruct):
     )
 
 
-class tristrip(PyCStruct):
+class TrisTrip(PyCStruct):
     fields = OrderedDict(
         [
             ("count", "uint32"),
@@ -66,7 +67,7 @@ class tristrip(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        self.vertices = [vertexId() for i in range(self.count)]
+        self.vertices = [VertexId() for i in range(self.count)]
         [v.marshall(data) for v in self.vertices]
 
 
@@ -94,14 +95,14 @@ class FBlock:
             0x00000002: MainBlock,
             0x00000004: ObjectBlock,
             0x00000005: FaceBlock,
-            0x00030000: trisStripsData,
-            0x00040000: trisStripsData,
-            0x00050000: byteArrayData,
-            0x00060000: byteArrayData,
-            0x00070000: vertexData,
-            0x00080000: normalsData,
-            0x000A0000: uvData,
-            0x000B0000: rgbData,
+            0x00030000: TrisStripsData,
+            0x00040000: TrisStripsData,
+            0x00050000: ByteArrayData,
+            0x00060000: ByteArrayData,
+            0x00070000: VertexData,
+            0x00080000: NormalsData,
+            0x000A0000: UvData,
+            0x000B0000: RgbData,
         }
 
         self.Header.marshall(data)
@@ -117,11 +118,11 @@ class FBlock:
         ]
         [d.marshall(data) for d in self.Data]
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         name = type(self).__name__
         print(base + name + "-" + str(self.Header.count))
-        for l in self.Data:
-            l.pretty_print(base + "\t")
+        for line in self.Data:
+            line.pretty_print(base + "\t")
 
 
 class FileBlock(FBlock):
@@ -152,46 +153,46 @@ class UnknBlock(FBlock):
     def marshall(self, data):
         self.Data = data
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         pass
 
 
-class dataContainer:
+class DataContainer:
     def __init__(self, parent):
-        self.count = parent.Header.count
+        self.count = parent.header.count
 
     def marshall(self, data):
         self.Data = [self.dataType() for _ in range(self.count)]
         for datum in self.Data:
             datum.marshall(data)
 
-    def prettyPrint(self, base=""):
+    def pretty_print(self, base=""):
         name = type(self).__name__
         print(base + name)
 
 
-class trisStripsData(dataContainer):
-    dataType = tristrip
+class TrisStripsData(DataContainer):
+    dataType = TrisTrip
 
 
-class byteArrayData(dataContainer):
-    dataType = byte4
+class ByteArrayData(DataContainer):
+    dataType = Byte4
 
 
-class vertexData(dataContainer):
+class VertexData(DataContainer):
     dataType = position
 
 
-class normalsData(dataContainer):
+class NormalsData(DataContainer):
     dataType = normal
 
 
-class uvData(dataContainer):
-    dataType = uv
+class UvData(DataContainer):
+    dataType = Uv
 
 
-class rgbData(dataContainer):
-    dataType = vect4
+class RgbData(DataContainer):
+    dataType = Vect4
 
 
 if __name__ == "__main__":
@@ -201,4 +202,4 @@ if __name__ == "__main__":
     f.close()
     frontierFile = FBlock()
     frontierFile.marshall(data)
-    frontierFile.prettyPrint()
+    frontierFile.pretty_print()

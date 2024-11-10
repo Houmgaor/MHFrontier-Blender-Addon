@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+Definition of blocks from Frontier files.
+
 Created on Thu Apr 04 13:57:02 2019
 
 @author: *&
@@ -7,15 +8,8 @@ Created on Thu Apr 04 13:57:02 2019
 
 from collections import OrderedDict
 
-try:
-    from ..common.Cstruct import PyCStruct
-    from ..common.FileLike import FileLike
-except ModuleNotFoundError:
-    import sys
-
-    sys.path.insert(0, r"..\common")
-    from Cstruct import PyCStruct
-    from FileLike import FileLike
+from ..common.cstruct import PyCStruct
+from ..common.filelike import FileLike
 
 
 class Byte4(PyCStruct):
@@ -82,8 +76,9 @@ class TrisTrip(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        self.vertices = [VertexId() for i in range(self.count & 0xFFFFFFF)]
-        [v.marshall(data) for v in self.vertices]
+        self.vertices = [VertexId() for _ in range(self.count & 0xFFFFFFF)]
+        for v in self.vertices:
+            v.marshall(data)
 
 
 class Weight(PyCStruct):
@@ -108,8 +103,6 @@ class WeightData(PyCStruct):
         [w.marshall(data) for w in self.weights]
 
     def pretty_print(self, base=""):
-        # name = type(self).__name__
-        # print(base+name)
         pass
 
 
@@ -152,36 +145,42 @@ class FBlockHeader(PyCStruct):
 
 
 class FBlock:
+    """Frontier data Block."""
+
     def __init__(self, parent=None):
-        self.Header = FBlockHeader()
-        self.Data = None
-        self.Parent = parent
+        """Define block from parent with empty data."""
+
+        self.header = FBlockHeader()
+        self.data = None
+        self.parent = parent
 
     def marshall(self, data):
-        self.Header.marshall(data)
-        sub_data = FileLike(data.read(self.Header.size - len(self.Header)))
-        self.Data = [self.get_type() for _ in range(self.Header.count)]
-        [datum.marshall(sub_data) for datum in self.Data]
+        """
+        Assign the values to the data block.
+
+        :param data: Data to read.
+        :type data: mhfrontier.common.filelike.FileLike
+        """
+
+        self.header.marshall(data)
+        sub_data = FileLike(data.read(self.header.size - len(self.header)))
+        self.data = [self.get_type() for _ in range(self.header.count)]
+        for datum in self.data:
+            datum.marshall(sub_data)
 
     def pretty_print(self, base=""):
         name = type(self.get_type()).__name__
-        print(
-            base
-            + name
-            + ":"
-            + " "
-            + str(self.Header.count)
-            + " \t"
-            + hex(self.Header.type)
-        )
-        for datum in self.Data:
+        print(f"{base}{name}: {self.header.count} \t{hex(self.header.type)}")
+        for datum in self.data:
             datum.pretty_print(base + "\t")
 
     def get_type(self):
-        return self.type_lookup(self.Header.type)()
+        return self.type_lookup(self.header.type)()
 
     @staticmethod
     def type_lookup(value):
+        """Return the block corresponding to value."""
+
         types = {
             0x00020000: InitBlock,
             0x00000001: FileBlock,
@@ -302,10 +301,7 @@ class MaterialData(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        # print()
-        # for prop in self.fields:
-        #    print("%s: %s"%(prop,getattr(self,prop)))
-        self.textureIndices = [TextureIndex() for i in range(self.textureCount)]
+        self.textureIndices = [TextureIndex() for _ in range(self.textureCount)]
         list(map(lambda x: x.marshall(data), self.textureIndices))
 
     """
@@ -331,8 +327,8 @@ class InitData(PyCStruct):
 
 class InitBlock(FBlock):
     def marshall(self, data):
-        self.Data = InitData()
-        self.Data.marshall(data)
+        self.data = InitData()
+        self.data.marshall(data)
 
     def pretty_print(self, base=""):
         pass
@@ -340,7 +336,7 @@ class InitBlock(FBlock):
 
 class UnknBlock(FBlock):
     def marshall(self, data):
-        self.Data = data
+        self.data = data
 
     def pretty_print(self, base=""):
         pass
@@ -348,12 +344,10 @@ class UnknBlock(FBlock):
 
 class DataContainer:
     def marshall(self, data):
-        self.Data = self.dataType()
-        self.Data.marshall(data)
+        self.data = self.dataType()
+        self.data.marshall(data)
 
     def pretty_print(self, base=""):
-        # name = type(self).__name__
-        # print(base+name)
         pass
 
 

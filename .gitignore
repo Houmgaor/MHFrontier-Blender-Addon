@@ -33,3 +33,6 @@ __pycache__
 
 
 .idea
+
+# ZIP for the Addon
+/MHFrontier-Blender-Addon.zip

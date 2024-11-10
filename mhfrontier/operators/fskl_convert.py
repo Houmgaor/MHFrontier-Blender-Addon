@@ -1,9 +1,12 @@
-# -*- coding: utf-8 -*-
 """
+Converter between a Frontier format skeleton (a set of axes)
+and a Blender armature.
+
 Created on Tue Aug 18 22:47:34 2020
 
 @author: AsteriskAmpersand
 """
+
 import bpy
 from mathutils import Vector, Matrix
 
