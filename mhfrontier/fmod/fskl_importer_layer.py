@@ -38,15 +38,18 @@ class FSklImporter:
     @staticmethod
     def deserialize_pose_vector(vec4):
         """
-        Pose vector to matrix, with scale reduction.
+        Pose vector to matrix with units conversions.
+
+        The output scale is 100th of the input and axes are switched.
 
         :return mathutils.Matrix: transform matrix
         """
 
         transform = Matrix.Identity(4)
         for i in range(4):
-            transform[i][3] = vec4[i] / 100
-            print(f"Before: {vec4[i]}, after: {vec4[i] / 100}")
+            # Axes permutations
+            j = [0, 2, 1, 3][i]
+            transform[i][3] = vec4[j] / 100
         return transform
 
     @staticmethod

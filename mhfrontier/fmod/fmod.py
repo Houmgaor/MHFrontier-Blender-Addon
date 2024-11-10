@@ -58,7 +58,7 @@ class FUVs:
         self.uvs = [[uv.data.u, 1 - uv.data.v] for uv in uv_block.data]
 
 
-class FRGB:
+class FRgb:
     def __init__(self, rgb_block):
         self.rgb = [
             [rgb.data.x, rgb.data.y, rgb.data.z, rgb.data.w] for rgb in rgb_block.data
@@ -66,6 +66,8 @@ class FRGB:
 
 
 class FWeights:
+    """Assign weights to the data."""
+
     def __init__(self, weights_block):
         groups = {}
         for vertID, weights in enumerate(weights_block.data):
@@ -175,7 +177,7 @@ class FMesh:
             fblock.VertexData: FVertices,
             fblock.NormalsData: FNormals,
             fblock.UVData: FUVs,
-            fblock.RGBData: FRGB,
+            fblock.RGBData: FRgb,
             fblock.WeightData: FWeights,
             fblock.BoneMapData: FBoneRemap,
             # fblock.UnknBlock: "UnknBlock"

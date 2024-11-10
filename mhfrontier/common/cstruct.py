@@ -4,6 +4,7 @@ Created on Mon Jan 28 13:38:38 2019
 
 @author: AsteriskAmpersand
 """
+import abc
 import struct
 from collections import OrderedDict
 from binascii import hexlify
@@ -57,8 +58,10 @@ def minifloat_serialize(x):
     return struct.pack("H", f16)
 
 
-class PyCStruct:
+class PyCStruct(abc.ABC):
     def __init__(self, data=None, _parent=None, **kwargs):
+        if not hasattr(self, "fields"):
+            raise ValueError("fields should be implemented!")
         self.CStruct = Cstruct(self.fields)
         if data is not None:
             self.marshall(data)
@@ -66,7 +69,8 @@ class PyCStruct:
             fields_keys = set(self.fields.keys())
             entry_keys = set(kwargs.keys())
             if fields_keys == entry_keys:
-                [self.__setattr__(attr, value) for attr, value in kwargs.items()]
+                for attr, value in kwargs.items():
+                    self.__setattr__(attr, value)
             else:
                 if fields_keys > entry_keys:
                     raise AttributeError("Missing fields to Initialize")
@@ -78,10 +82,8 @@ class PyCStruct:
         return len(self.CStruct)
 
     def marshall(self, data):
-        [
+        for attr, value in self.CStruct.marshall(data).items():
             self.__setattr__(attr, value)
-            for attr, value in self.CStruct.marshall(data).items()
-        ]
 
     def serialize(self):
         return self.CStruct.serialize(
@@ -107,8 +109,7 @@ class PyCStruct:
                 self.__setattr__(field, self.defaultProperties[field])
             elif field in self.requiredProperties:
                 raise KeyError("Required Property missing in supplied data")
-            else:
-                self.__setattr__(field, None)
+            self.__setattr__(field, None)
 
     def verify(self):
         for attr in self.fields:
@@ -126,6 +127,8 @@ def deserializer(data_format, size):
 
 
 class Cstruct:
+    """Main structure to parse C-like data type."""
+
     CTypes = {
         "byte": deserializer("b", 1),
         "int8": deserializer("b", 1),
@@ -166,34 +169,43 @@ class Cstruct:
 
     @staticmethod
     def array_type(type_str):
+        """
+        Get the type for an array of data.
+
+        :param str type_str: Data types to assign.
+        """
+
         base = type_str[: type_str.index("[")]
         size = type_str[type_str.index("[") + 1 : type_str.index("]")]
-        base_type_call = Cstruct.CTypes
-
+        data_type = Cstruct.CTypes[base]
         int_size = int(size)
+
         if base != "char":
             return {
-                "size": int_size * base_type_call[base]["size"],
+                "size": int_size * data_type["size"],
                 "deserializer": lambda x: [
-                    base_type_call[base]["deserializer"](chunk)
-                    for chunk in chunks(x, base_type_call[base]["size"])
+                    data_type["deserializer"](chunk)
+                    for chunk in chunks(x, data_type["size"])
                 ],
-                "serializer": lambda x: b"".join(
-                    map(base_type_call[base]["serializer"], x)
-                ),
+                "serializer": lambda x: b"".join(map(data_type["serializer"], x)),
             }
         return {
-            "size": int_size * base_type_call[base]["size"],
+            "size": int_size * data_type["size"],
             "deserializer": lambda x: "".join(
                 [
-                    (base_type_call[base]["deserializer"](chunk)).decode("ascii")
-                    for chunk in chunks(x, base_type_call[base]["size"])
+                    data_type["deserializer"](chunk).decode("ascii")
+                    for chunk in chunks(x, data_type["size"])
                 ]
             ),
             "serializer": lambda x: x.encode("ascii").ljust(int_size, b"\x00"),
         }
 
     def __init__(self, fields):
+        """
+        Assign the structure type.
+
+        :param dict fields: Fields to assign.
+        """
         self.struct = OrderedDict()
         self.initialized = True
         for name in fields:
@@ -229,17 +241,19 @@ class Mod3Container:
         self.mod3Array = [mod3class() for _ in range(containee_count)]
 
     def marshall(self, data):
-        [x.marshall(data) for x in self.mod3Array]
+        for x in self.mod3Array:
+            x.marshall(data)
 
     def construct(self, data):
         if len(data) != len(self.mod3Array):
             raise AssertionError(
                 "Cannot construct container with different amounts of data"
             )
-        [x.construct(d) for x, d in zip(self.mod3Array, data)]
+        for x, d in zip(self.mod3Array, data):
+            x.construct(d)
 
     def serialize(self):
-        return b"".join([element.serialize() for element in self.mod3Array])
+        return b"".join(element.serialize() for element in self.mod3Array)
 
     def __iter__(self):
         return self.mod3Array.__iter__()
@@ -262,4 +276,5 @@ class Mod3Container:
         return len(self.mod3Array)
 
     def verify(self):
-        [x.verify() for x in self.mod3Array]
+        for x in self.mod3Array:
+            x.verify()

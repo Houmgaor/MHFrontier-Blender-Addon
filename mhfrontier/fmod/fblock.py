@@ -76,8 +76,9 @@ class TrisTrip(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        self.vertices = [VertexId() for i in range(self.count & 0xFFFFFFF)]
-        [v.marshall(data) for v in self.vertices]
+        self.vertices = [VertexId() for _ in range(self.count & 0xFFFFFFF)]
+        for v in self.vertices:
+            v.marshall(data)
 
 
 class Weight(PyCStruct):

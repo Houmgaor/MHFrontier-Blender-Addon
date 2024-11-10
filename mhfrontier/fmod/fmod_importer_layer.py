@@ -78,9 +78,13 @@ class FModImporter:
         :return: Mesh and associated object.
         :rtype: tuple[bpy.types.Mesh, bpy.types.Object]
         """
-        blender_mesh = bpy.data.meshes.new("%s" % (name,))
-        scaled_vertices = [tuple(i / 100 for i in v) for v in vertices]
-        blender_mesh.from_pydata(scaled_vertices, [], faces)
+        blender_mesh = bpy.data.meshes.new(name)
+        # Change scale and axes
+        transformed_vertices = [tuple() for _ in vertices]
+        for i, vertex in enumerate(vertices):
+            scaled = tuple(i / 100 for i in vertex)
+            transformed_vertices[i] = scaled[0], scaled[2], scaled[1]
+        blender_mesh.from_pydata(transformed_vertices, [], faces)
         blender_mesh.update()
         blender_object = bpy.data.objects.new(name, blender_mesh)
         # Blender 2.8+
