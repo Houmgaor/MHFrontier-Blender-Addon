@@ -5,12 +5,14 @@ Created on Mon Dec 30 01:10:11 2019
 @author: AsteriskAmpersand
 """
 import bpy
-from bpy_extras.io_utils import ImportHelper
+import bpy_extras
 
 from ..fmod import FSklImporterLayer
 
 
-class ImportFSKL(bpy.types.Operator, ImportHelper):
+class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    """Add an operator to import a FSKL file."""
+
     bl_idname = "custom_import.import_mhf_fskl"
     bl_label = "Load MHF FSKL file (.fskl)"
     bl_options = {"REGISTER", "PRESET", "UNDO"}

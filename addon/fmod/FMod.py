@@ -8,7 +8,7 @@ import warnings
 from itertools import cycle
 
 from ..fmod import FBlock
-from ..common.FileLike import FileLike
+from ..common.filelike import FileLike
 
 
 class FFaces:
@@ -249,7 +249,7 @@ class FMat:
 class FModel:
     def __init__(self, file_path):
         with open(file_path, "rb") as modelFile:
-            frontier_file = FBlock()
+            frontier_file = FBlock.FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
         meshes = frontier_file.Data[1].Data
         materials = frontier_file.Data[2].Data

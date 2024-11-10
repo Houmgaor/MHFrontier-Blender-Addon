@@ -5,12 +5,14 @@ Created on Wed Mar  6 14:09:29 2019
 @author: AsteriskAmpersand
 """
 import bpy
-from bpy_extras.io_utils import ImportHelper
+import bpy_extras
 
 from ..fmod import FModImporterLayer
 
 
-class ImportFMOD(bpy.types.Operator, ImportHelper):
+class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    """Addon an operator to import a FMOD (Frontier Model) file."""
+
     bl_idname = "custom_import.import_mhf_fmod"
     bl_label = "Load MHF FMOD file (.fmod)"
     bl_options = {"REGISTER", "PRESET", "UNDO"}

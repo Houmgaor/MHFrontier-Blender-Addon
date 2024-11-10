@@ -12,13 +12,7 @@ from pathlib import Path
 import bpy
 import bmesh
 
-from ..blender.BlenderNodesFunctions import (
-    principled_setup,
-    diffuse_setup,
-    normal_setup,
-    specular_setup,
-    finish_setup,
-)
+from ..blender import blender_nodes_functions as bnf
 from ..fmod.FMod import FModel
 
 
@@ -214,25 +208,25 @@ class FModImporter:
             normal_ix = materials[ix].get_normal()
             specular_ix = materials[ix].get_specular()
             # Construction
-            setup = principled_setup(node_tree)
+            setup = bnf.principled_setup(node_tree)
             next(setup)
             if diffuse_ix is not None:
-                diffuse_node = diffuse_setup(node_tree, get_texture(diffuse_ix))
+                diffuse_node = bnf.diffuse_setup(node_tree, get_texture(diffuse_ix))
                 setup.send(diffuse_node)
             else:
                 setup.send(None)
 
             if normal_ix is not None:
-                normal_node = normal_setup(node_tree, get_texture(normal_ix))
+                normal_node = bnf.normal_setup(node_tree, get_texture(normal_ix))
                 setup.send(normal_node)
             else:
                 setup.send(None)
             if specular_ix is not None:
-                specular_node = specular_setup(node_tree, get_texture(specular_ix))
+                specular_node = bnf.specular_setup(node_tree, get_texture(specular_ix))
                 setup.send(specular_node)
             else:
                 setup.send(None)
-            finish_setup(node_tree, next(setup))
+            bnf.finish_setup(node_tree, next(setup))
             # Assign texture: FModImporter.assignTexture(mesh, textureData)
 
     @staticmethod

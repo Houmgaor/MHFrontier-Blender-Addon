@@ -33,6 +33,11 @@ Your model is imported with the textures, and you can change its pose.
 
 The important part of the addon is in the addon folder.
 You only need to create a ZIP of this folder to build it.
+If you want to do it from a python script just run.
+
+```commandline
+python extra/zip_addon.py
+```
 
 ## Get FMOD/FSKL files
 

@@ -5,7 +5,7 @@ Created on Sun Dec 29 21:50:00 2019
 @author: AsteriskAmpersand
 """
 from ..fmod.FBlock import FBlock
-from ..common.FileLike import FileLike
+from ..common.filelike import FileLike
 
 
 class FBone:
