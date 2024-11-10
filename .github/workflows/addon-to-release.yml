@@ -1,0 +1,26 @@
+name: Join Add-on to Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: python extra/zip_addon.py
+    
+    - name: Upload ZIP file
+      uses: softprops/action-gh-release@v1
+      with:
+        files: MHFrontier-Blender-Addon.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+    - name: Delete file
+      run: rm MHFrontier-Blender-Addon.zip
+        
