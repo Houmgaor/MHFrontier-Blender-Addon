@@ -34,5 +34,7 @@ __pycache__
 
 .idea
 
-# ZIP for the Addon
-/MHFrontier-Blender-Addon.zip
+# ZIP for the Add-on, new path
+mhfrontier/mhfrontier_model_importer-*.zip
+# Legacy path
+mhfrontier_model_importer.zip

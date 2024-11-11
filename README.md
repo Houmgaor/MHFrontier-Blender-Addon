@@ -32,7 +32,15 @@ Your model is imported with the textures, and you can change its pose.
 
 The important part of the addon is in the "mhfrontier" folder.
 You only need to create a ZIP of this folder to build it.
-If you want to do it from a python script just run.
+
+If you have Blender 4.2+ use:
+
+```commandline
+cd mhfrontier
+blender --command extension build
+```
+
+Otherwise we provide a legacy Python script:
 
 ```commandline
 python extra/zip_addon.py
@@ -43,10 +51,10 @@ python extra/zip_addon.py
 To get any data to extract, you need a Monster Hunter Frontier Z game.
 Then, the game data need to be decompressed,
 you don't need to decompress everything as the monster models are in "[your MHFrontier folder]/dat/emmodel[_hd]".
+
 To known which file is which monster you can
 use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380d9f217d17eb89ca3d075206ee/monster_ids.md)
-as a
-reference.
+as a reference.
 To decompress data use [ReFrontier](https://github.com/Houmgaor/ReFrontier).
 You want .fmod (3D model) and .fskl (skeleton) files.
 

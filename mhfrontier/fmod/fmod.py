@@ -16,7 +16,7 @@ def frontier_faces(face_block):
     """Builds faces from Frontier file."""
 
     faces = []
-    for tris_trip_array in face_block.data:
+    for tris_trip_array in face_block:
         for tris_trip in tris_trip_array.data:
             vertices = tris_trip.data.vertices
             faces += [
@@ -28,44 +28,31 @@ def frontier_faces(face_block):
     return faces
 
 
-def frontier_unknown_singular(_unknown_singular_block):
-    pass
-
-
-def frontier_triangles_data(face_data_block):
-    """Triangles data."""
-    return [faceElement.data for faceElement in face_data_block.data]
-
-
 def frontier_vertices(vertex_block):
     """Vertices definition."""
-    return [
-        (vertex.data.x, vertex.data.y, vertex.data.z) for vertex in vertex_block.data
-    ]
+    return [(vertex.data.x, vertex.data.y, vertex.data.z) for vertex in vertex_block]
 
 
 def frontier_normals(normals_block):
     """Normals definition."""
-    return [
-        [normal.data.x, normal.data.y, normal.data.z] for normal in normals_block.data
-    ]
+    return [[normal.data.x, normal.data.y, normal.data.z] for normal in normals_block]
 
 
 def frontier_uvs(uv_block):
     """UV map."""
-    return [[uv.data.u, 1 - uv.data.v] for uv in uv_block.data]
+    return [[uv.data.u, 1 - uv.data.v] for uv in uv_block]
 
 
 def frontier_rgb(rgb_block):
     """Vertices RGB data."""
-    return [[rgb.data.x, rgb.data.y, rgb.data.z, rgb.data.w] for rgb in rgb_block.data]
+    return [[rgb.data.x, rgb.data.y, rgb.data.z, rgb.data.w] for rgb in rgb_block]
 
 
 def frontier_weights(weights_block):
     """Assign weights to the data."""
 
     groups = {}
-    for vertID, weights in enumerate(weights_block.data):
+    for vertID, weights in enumerate(weights_block):
         for weight in weights.weights:
             if weight.boneID not in groups:
                 groups[weight.boneID] = []
@@ -76,7 +63,7 @@ def frontier_weights(weights_block):
 def frontier_remap_block(remap_block):
     """Reorganize a block by taking its data."""
 
-    return [data_id.data.id for data_id in remap_block.data]
+    return [data_id.data.id for data_id in remap_block]
 
 
 class FMesh:
@@ -95,40 +82,40 @@ class FMesh:
         """
 
         # Accumulate data
-        tris_trip_repetition = None
+        face_data = None
         properties = {}
         for objectBlock in object_block.data:
             typing = fblock.fblock_type_lookup(objectBlock.header.type)
             if typing is fblock.FaceBlock:
-                properties[typing] = frontier_faces(objectBlock)
-                tris_trip_repetition = self.calc_strip_lengths(objectBlock)
+                face_data = objectBlock.data
+                properties[typing] = frontier_faces(face_data)
             elif typing is fblock.MaterialList:
-                properties[typing] = frontier_remap_block(objectBlock)
+                properties[typing] = frontier_remap_block(objectBlock.data)
             elif typing is fblock.MaterialMap:
-                properties[typing] = frontier_remap_block(objectBlock)
+                properties[typing] = frontier_remap_block(objectBlock.data)
             elif typing is fblock.VertexData:
-                properties[typing] = frontier_vertices(objectBlock)
+                properties[typing] = frontier_vertices(objectBlock.data)
             elif typing is fblock.NormalsData:
-                properties[typing] = frontier_normals(objectBlock)
+                properties[typing] = frontier_normals(objectBlock.data)
             elif typing is fblock.UVData:
-                properties[typing] = frontier_uvs(objectBlock)
+                properties[typing] = frontier_uvs(objectBlock.data)
             elif typing is fblock.RGBData:
-                properties[typing] = frontier_rgb(objectBlock)
+                properties[typing] = frontier_rgb(objectBlock.data)
             elif typing is fblock.WeightData:
-                properties[typing] = frontier_weights(objectBlock)
+                properties[typing] = frontier_weights(objectBlock.data)
             elif typing is fblock.BoneMapData:
-                properties[typing] = frontier_remap_block(objectBlock)
+                properties[typing] = frontier_remap_block(objectBlock.data)
             elif typing is fblock.UnknBlock:
-                properties[typing] = objectBlock
+                properties[typing] = objectBlock.data
             else:
                 warnings.warn(f"Unknown block type {type(objectBlock)}")
 
         self.faces = properties[fblock.FaceBlock]
         self.material_list = properties[fblock.MaterialList]
         self.material_map = None
-        if fblock.MaterialMap in properties and tris_trip_repetition is not None:
+        if fblock.MaterialMap in properties and fblock.FaceBlock in properties:
             self.material_map = self.decompose_material_list(
-                properties[fblock.MaterialMap], tris_trip_repetition
+                properties[fblock.MaterialMap], self.calc_strip_lengths(face_data)
             )
         self.vertices = properties[fblock.VertexData]
         self.normals = properties[fblock.NormalsData]
@@ -156,7 +143,7 @@ class FMesh:
     @staticmethod
     def calc_strip_lengths(face_block):
         lengths = []
-        for tris_trip_array in face_block.data:
+        for tris_trip_array in face_block:
             for tris_trip in tris_trip_array.data:
                 lengths.append(len(tris_trip.data.vertices) - 2)
         return lengths

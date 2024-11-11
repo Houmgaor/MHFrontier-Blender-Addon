@@ -22,4 +22,4 @@ def zip_folder(folder_path, output_path):
 
 
 # Usage example
-zip_folder(".", "MHFrontier-Blender-Addon.zip")
+zip_folder(".", "mhfrontier_model_importer.zip")
