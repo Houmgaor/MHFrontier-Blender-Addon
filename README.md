@@ -52,6 +52,7 @@ You want .fmod (3D model) and .fskl (skeleton) files.
 
 ## In this fork (Houmgaor/)
 
+- Some models could not load with the original add-on.
 - Compatibility with Blender 2.8+.
 - Correctly scale and orient models.
 - Less memory usage, preventing crash.

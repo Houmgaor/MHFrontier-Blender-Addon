@@ -13,7 +13,7 @@ import bpy
 import bmesh
 
 from ..blender import blender_nodes_functions as bnf
-from ..fmod.fmod import FModel
+from ..fmod import fmod
 
 
 def import_model(fmod_path, import_textures_prop):
@@ -24,9 +24,7 @@ def import_model(fmod_path, import_textures_prop):
     :param import_textures_prop: True if the textures should be added.
     """
     bpy.context.scene.render.engine = "CYCLES"
-    fmod = FModel(fmod_path)
-    meshes = fmod.traditional_mesh_structure()
-    materials = fmod.materials
+    meshes, materials = fmod.load_fmod_file(fmod_path)
     blender_materials = {}
     for ix, mesh in enumerate(meshes):
         import_mesh(ix, mesh, blender_materials)
@@ -39,7 +37,7 @@ def import_mesh(index, mesh, blender_materials):
     Import the mesh.
 
     :param int index: Mesh index
-    :param dict mesh: fmesh with standard structure
+    :param mhfrontier.fmod.fmod.FMesh mesh: fmesh with standard structure
     :param blender_materials: Materials associated with the mesh.
     """
     mesh_objects = []
@@ -47,23 +45,25 @@ def import_mesh(index, mesh, blender_materials):
 
     # Geometry
     blender_mesh, blender_object = create_mesh(
-        "FModMeshpart %03d" % (index,), mesh["vertices"], mesh["faces"]
+        "FModMeshpart %03d" % (index,), mesh.vertices, mesh.faces
     )
     # Normals Handling
-    set_normals(mesh["normals"], blender_mesh)
+    set_normals(mesh.normals, blender_mesh)
     # UVs
-    if bpy.app.version >= (2, 8):
-        blender_object.data.uv_layers.new(name="UV0")
-    create_texture_layer(
-        blender_mesh,
-        mesh["uvs"],
-        mesh["materials"],
-        mesh["faceMaterial"],
-        blender_materials,
-    )
+    if mesh.uvs is not None:
+        if bpy.app.version >= (2, 8):
+            blender_object.data.uv_layers.new(name="UV0")
+        create_texture_layer(
+            blender_mesh,
+            mesh.uvs,
+            mesh.material_list,
+            mesh.material_map,
+            blender_materials,
+        )
 
     # Weights
-    set_weights(mesh["weights"], mesh["boneRemap"], blender_object)
+    if mesh.weights is not None:
+        set_weights(mesh.weights, mesh.bone_remap, blender_object)
     blender_mesh.update()
     mesh_objects.append(blender_object)
 

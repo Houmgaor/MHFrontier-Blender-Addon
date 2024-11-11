@@ -94,27 +94,34 @@ class FMesh:
         :type object_block: mhfrontier.fmod.fblock.MainBlock
         """
 
-        block_parsers = {
-            fblock.FaceBlock: frontier_faces,
-            fblock.MaterialList: frontier_remap_block,
-            fblock.MaterialMap: frontier_remap_block,
-            fblock.VertexData: frontier_vertices,
-            fblock.NormalsData: frontier_normals,
-            fblock.UVData: frontier_uvs,
-            fblock.RGBData: frontier_rgb,
-            fblock.WeightData: frontier_weights,
-            fblock.BoneMapData: frontier_remap_block,
-            fblock.UnknBlock: lambda x: None,
-        }
-
         # Accumulate data
         tris_trip_repetition = None
         properties = {}
         for objectBlock in object_block.data:
             typing = fblock.fblock_type_lookup(objectBlock.header.type)
-            properties[typing] = block_parsers[typing](objectBlock)
             if typing is fblock.FaceBlock:
+                properties[typing] = frontier_faces(objectBlock)
                 tris_trip_repetition = self.calc_strip_lengths(objectBlock)
+            elif typing is fblock.MaterialList:
+                properties[typing] = frontier_remap_block(objectBlock)
+            elif typing is fblock.MaterialMap:
+                properties[typing] = frontier_remap_block(objectBlock)
+            elif typing is fblock.VertexData:
+                properties[typing] = frontier_vertices(objectBlock)
+            elif typing is fblock.NormalsData:
+                properties[typing] = frontier_normals(objectBlock)
+            elif typing is fblock.UVData:
+                properties[typing] = frontier_uvs(objectBlock)
+            elif typing is fblock.RGBData:
+                properties[typing] = frontier_rgb(objectBlock)
+            elif typing is fblock.WeightData:
+                properties[typing] = frontier_weights(objectBlock)
+            elif typing is fblock.BoneMapData:
+                properties[typing] = frontier_remap_block(objectBlock)
+            elif typing is fblock.UnknBlock:
+                properties[typing] = objectBlock
+            else:
+                warnings.warn(f"Unknown block type {type(objectBlock)}")
 
         self.faces = properties[fblock.FaceBlock]
         self.material_list = properties[fblock.MaterialList]
@@ -125,10 +132,26 @@ class FMesh:
             )
         self.vertices = properties[fblock.VertexData]
         self.normals = properties[fblock.NormalsData]
-        self.uvs = properties[fblock.UVData] if fblock.UVData in properties else None
+        # Some blocks store visual effects and other properties,
+        # they do not have uv or weight
+        if fblock.UVData in properties:
+            self.uvs = properties[fblock.UVData]
+        else:
+            warnings.warn("No UV data found for this model. Texture won't be rendered.")
+            self.uvs = None
         self.rgb_like = properties[fblock.RGBData]
-        self.weights = properties[fblock.WeightData]
-        self.bone_remap = properties[fblock.BoneMapData]
+        if fblock.WeightData in properties:
+            self.weights = properties[fblock.WeightData]
+        else:
+            warnings.warn(
+                "No weights data found for this model. Pose editing won't work."
+            )
+            self.weights = None
+        if fblock.BoneMapData in properties:
+            self.bone_remap = properties[fblock.BoneMapData]
+        else:
+            warnings.warn("No bone map data. Pose won't be available.")
+            self.bone_remap = None
 
     @staticmethod
     def calc_strip_lengths(face_block):
@@ -144,27 +167,6 @@ class FMesh:
         for material, triangles_len in zip(material_list, tri_strip_counts):
             material_array += [material] * triangles_len
         return material_array
-
-    def traditional_mesh_structure(self):
-        """
-        Format the mesh as a traditional structure.
-
-        :return dict: Structure.
-        """
-        if self.uvs is None:
-            # An actual fix is missing
-            warnings.warn("No UV data found in this file. Texture won't be rendered.")
-        structure = {
-            "vertices": self.vertices,
-            "faces": self.faces,
-            "normals": self.normals,
-            "uvs": self.uvs,
-            "weights": self.weights,
-            "boneRemap": self.bone_remap,
-            "materials": self.material_list,
-            "faceMaterial": self.material_map,
-        }
-        return structure
 
 
 class FMat:
@@ -197,56 +199,48 @@ class FMat:
         return None
 
 
-class FModel:
+def load_fmod_file(file_path):
     """
-    Load a 3D model from FMOD file.
+    Load a 3D models with materials from an FMOD file.
 
-    An FMOD file usually contains multiple files.
+    A single FMOD file usually contains multiple meshes.
+
+    :param str file_path: FMOD file to read.
+    :return tuple[list[FMesh], list[FMat]]: List of meshes and associated materials
     """
 
-    def __init__(self, file_path):
-        """
-        Load the meshes with the materials.
-
-        :param str file_path: FMOD file to read.
-        """
-
-        with open(file_path, "rb") as modelFile:
-            frontier_file = fblock.FBlock()
-            frontier_file.marshall(FileLike(modelFile.read()))
-        for i, datum in enumerate(frontier_file.data[1:4]):
-            if not isinstance(datum, fblock.FileBlock):
-                raise TypeError(
-                    f"Child {i} should be {fblock.FileBlock.__name__}, "
-                    f"found type is {type(datum)}"
-                )
-        meshes = frontier_file.data[1].data
-        for i, mesh in enumerate(meshes):
-            if not isinstance(mesh, fblock.MainBlock):
-                raise TypeError(
-                    f"Block type should be {fblock.MainBlock.__name__}, "
-                    f"found type is {type(mesh)}"
-                )
-        materials = frontier_file.data[2].data
-        for i, material in enumerate(materials):
-            if not isinstance(material, fblock.MaterialBlock):
-                raise TypeError(
-                    f"Block {i} should be {fblock.MaterialBlock.__name__}, "
-                    f"found type is {type(frontier_file.data[2].data)}"
-                )
-        textures = frontier_file.data[3].data
-        for i, texture in enumerate(textures):
-            if not isinstance(texture, fblock.TextureBlock):
-                raise TypeError(
-                    f"Block {i} should be {fblock.TextureBlock.__name__}, "
-                    f"found type is {type(texture)}"
-                )
-        self.mesh_parts = [FMesh(mesh) for mesh in meshes]
-        self.materials = [FMat(material, textures) for material in materials]
-        print("FMOD file structure\n===================")
-        frontier_file.pretty_print()
-
-    def traditional_mesh_structure(self):
-        """Format each mesh part in the registered meshes."""
-
-        return [mesh.traditional_mesh_structure() for mesh in self.mesh_parts]
+    with open(file_path, "rb") as modelFile:
+        frontier_file = fblock.FBlock()
+        frontier_file.marshall(FileLike(modelFile.read()))
+    print("FMOD file structure\n===================")
+    frontier_file.pretty_print()
+    for i, datum in enumerate(frontier_file.data[1:4]):
+        if not isinstance(datum, fblock.FileBlock):
+            raise TypeError(
+                f"Child {i} should be {fblock.FileBlock.__name__}, "
+                f"found type is {type(datum)}"
+            )
+    meshes = frontier_file.data[1].data
+    for i, mesh in enumerate(meshes):
+        if not isinstance(mesh, fblock.MainBlock):
+            raise TypeError(
+                f"Block type should be {fblock.MainBlock.__name__}, "
+                f"found type is {type(mesh)}"
+            )
+    materials = frontier_file.data[2].data
+    for i, material in enumerate(materials):
+        if not isinstance(material, fblock.MaterialBlock):
+            raise TypeError(
+                f"Block {i} should be {fblock.MaterialBlock.__name__}, "
+                f"found type is {type(frontier_file.data[2].data)}"
+            )
+    textures = frontier_file.data[3].data
+    for i, texture in enumerate(textures):
+        if not isinstance(texture, fblock.TextureBlock):
+            raise TypeError(
+                f"Block {i} should be {fblock.TextureBlock.__name__}, "
+                f"found type is {type(texture)}"
+            )
+    mesh_parts = [FMesh(mesh) for mesh in meshes]
+    materials = [FMat(material, textures) for material in materials]
+    return mesh_parts, materials
