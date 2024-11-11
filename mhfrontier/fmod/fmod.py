@@ -243,6 +243,7 @@ class FModel:
                 )
         self.mesh_parts = [FMesh(mesh) for mesh in meshes]
         self.materials = [FMat(material, textures) for material in materials]
+        print("FMOD file structure\n===================")
         frontier_file.pretty_print()
 
     def traditional_mesh_structure(self):

@@ -32,8 +32,7 @@ class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         except RuntimeError as error:
             print(error)
         bpy.ops.object.select_all(action="DESELECT")
-        importer = fskl_importer_layer.FSklImporter()
-        importer.execute(self.properties.filepath)
+        fskl_importer_layer.import_skeleton(self.properties.filepath)
         return {"FINISHED"}
 
 

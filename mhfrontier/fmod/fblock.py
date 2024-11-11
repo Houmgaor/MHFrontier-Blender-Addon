@@ -124,6 +124,9 @@ class BoneBlock(PyCStruct):
         ]
     )
 
+    def pretty_print(self, indent=0):
+        pass
+
 
 class TextureData(PyCStruct):
     fields = OrderedDict(

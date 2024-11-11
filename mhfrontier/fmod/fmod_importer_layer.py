@@ -194,31 +194,37 @@ def import_textures(materials, path, blender_materials):
         diffuse_ix = materials[ix].get_diffuse()
         normal_ix = materials[ix].get_normal()
         specular_ix = materials[ix].get_specular()
+        # Get texture files
+        texture_files = find_all_textures(path)
         # Construction
         setup = bnf.principled_setup(node_tree)
         next(setup)
         if diffuse_ix is None:
             setup.send(None)
         else:
-            diffuse_node = bnf.diffuse_setup(node_tree, get_texture(path, diffuse_ix))
+            diffuse_node = bnf.diffuse_setup(
+                node_tree, fetch_texture(texture_files[diffuse_ix])
+            )
             setup.send(diffuse_node)
 
         if normal_ix is None:
             setup.send(None)
         else:
-            normal_node = bnf.normal_setup(node_tree, get_texture(path, normal_ix))
+            normal_node = bnf.normal_setup(
+                node_tree, fetch_texture(texture_files[normal_ix])
+            )
             setup.send(normal_node)
 
         if specular_ix is None:
             setup.send(None)
         else:
             specular_node = bnf.specular_setup(
-                node_tree, get_texture(path, specular_ix)
+                node_tree, fetch_texture(texture_files[specular_ix])
             )
             setup.send(specular_node)
 
         bnf.finish_setup(node_tree, next(setup))
-        # Assign texture: FModImporter.assignTexture(mesh, textureData)
+        # Assign texture: assign_texture(mesh, textureData)
 
 
 def get_texture(path, local_index):
@@ -243,14 +249,8 @@ def fetch_texture(filepath):
     raise FileNotFoundError("File %s not found" % filepath)
 
 
-def search_textures(path, ix):
-    """
-    Read all textures in the folder and return the one corresponding to the index.
-
-    :param str path: Initial file path.
-    :param int ix: Current index.
-    :return str: New texture found at index
-    """
+def find_all_textures(path):
+    """Find all the textures at the designated path."""
     model_path = Path(path)
     in_children = [
         f
@@ -262,13 +262,29 @@ def search_textures(path, ix):
         for f in model_path.parents[1].glob("**/*")
         if f.is_dir() and f < model_path.parent
     ]
-    candidates = [
+    directories = [
         model_path.parent,
         *sorted(in_children),
         *sorted(in_parents),
     ]
-    for directory in candidates:
+    output = []
+    for directory in directories:
         current = sorted(list(directory.rglob("*.png")))
-        if current:
-            current.sort()
-            return current[min(ix, len(current))].resolve().as_posix()
+        output.extend(file.resolve().as_posix() for file in current)
+    return output
+
+
+def search_textures(path, ix):
+    """
+    Read all textures in the folder and return the one corresponding to the index.
+
+    :param str path: Initial file path.
+    :param int ix: Current index.
+    :return str: New texture found at index
+    """
+    textures = find_all_textures(path)
+    if ix >= len(textures):
+        raise IndexError(
+            f"Requested texture {ix}, but only {len(textures)} where detected!"
+        )
+    return textures[ix]
