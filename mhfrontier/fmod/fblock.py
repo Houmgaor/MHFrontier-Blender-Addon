@@ -6,6 +6,7 @@ Created on Thu Apr 04 13:57:02 2019
 @author: *&
 """
 
+import abc
 from collections import OrderedDict
 
 from ..common.cstruct import PyCStruct
@@ -235,7 +236,7 @@ class SimpleFBlock(FBlock):
     def get_type(self):
         return self.ftype()
 
-    def pretty_print(self, indents=""):
+    def pretty_print(self, indents=0):
         pass
 
 
@@ -310,14 +311,6 @@ class MaterialData(PyCStruct):
         self.textureIndices = [TextureIndex() for _ in range(self.textureCount)]
         list(map(lambda x: x.marshall(data), self.textureIndices))
 
-    """
-    def marshall(self,data):
-        self.Header = materialHeader()
-        self.Header.marshall(data)
-        self.Channels = materialChannelMapping(self.Header.blockSize)
-        self.Channels.marshall(data)
-        return self"""
-
 
 class TextureBlock(SimpleFBlock):
     ftype = TextureData
@@ -336,7 +329,7 @@ class InitBlock(FBlock):
         self.data = InitData()
         self.data.marshall(data)
 
-    def pretty_print(self, indents=""):
+    def pretty_print(self, indents=0):
         pass
 
 
@@ -348,12 +341,12 @@ class UnknBlock(FBlock):
         pass
 
 
-class DataContainer:
+class DataContainer(abc.ABC):
     def marshall(self, data):
         self.data = self.dataType()
         self.data.marshall(data)
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, indents=0):
         pass
 
 

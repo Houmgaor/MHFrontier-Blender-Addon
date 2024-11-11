@@ -56,11 +56,9 @@ def frontier_uvs(uv_block):
     return [[uv.data.u, 1 - uv.data.v] for uv in uv_block.data]
 
 
-def frontier_rgb(self, rgb_block):
+def frontier_rgb(rgb_block):
     """Vertices RGB data."""
-    self.rgb = [
-        [rgb.data.x, rgb.data.y, rgb.data.z, rgb.data.w] for rgb in rgb_block.data
-    ]
+    return [[rgb.data.x, rgb.data.y, rgb.data.z, rgb.data.w] for rgb in rgb_block.data]
 
 
 def frontier_weights(weights_block):
@@ -96,27 +94,7 @@ class FMesh:
         :type object_block: mhfrontier.fmod.fblock.MainBlock
         """
 
-        self.faces = None
-        self.material_list = []
-        self.material_map = []
-        self.vertices = None
-        self.normals = None
-        self.uvs = None
-        self.rgb_like = None
-        self.weights = {}
-        self.bone_remap = []
-        attributes = {
-            fblock.FaceBlock: "faces",
-            fblock.MaterialList: "material_list",
-            fblock.MaterialMap: "material_map",
-            fblock.VertexData: "vertices",
-            fblock.NormalsData: "normals",
-            fblock.UVData: "uvs",
-            fblock.RGBData: "rgb_like",
-            fblock.WeightData: "weights",
-            fblock.BoneMapData: "bone_remap",
-        }
-        type_data = {
+        block_parsers = {
             fblock.FaceBlock: frontier_faces,
             fblock.MaterialList: frontier_remap_block,
             fblock.MaterialMap: frontier_remap_block,
@@ -126,19 +104,31 @@ class FMesh:
             fblock.RGBData: frontier_rgb,
             fblock.WeightData: frontier_weights,
             fblock.BoneMapData: frontier_remap_block,
+            fblock.UnknBlock: lambda x: None,
         }
-        # Start assigning properties from data
+
+        # Accumulate data
         tris_trip_repetition = None
+        properties = {}
         for objectBlock in object_block.data:
             typing = fblock.fblock_type_lookup(objectBlock.header.type)
-            if typing in attributes:
-                self.__setattr__(attributes[typing], type_data[typing](objectBlock))
+            properties[typing] = block_parsers[typing](objectBlock)
             if typing is fblock.FaceBlock:
                 tris_trip_repetition = self.calc_strip_lengths(objectBlock)
-        if self.material_map is not None and tris_trip_repetition is not None:
+
+        self.faces = properties[fblock.FaceBlock]
+        self.material_list = properties[fblock.MaterialList]
+        self.material_map = None
+        if fblock.MaterialMap in properties and tris_trip_repetition is not None:
             self.material_map = self.decompose_material_list(
-                self.material_map, tris_trip_repetition
+                properties[fblock.MaterialMap], tris_trip_repetition
             )
+        self.vertices = properties[fblock.VertexData]
+        self.normals = properties[fblock.NormalsData]
+        self.uvs = properties[fblock.UVData] if fblock.UVData in properties else None
+        self.rgb_like = properties[fblock.RGBData]
+        self.weights = properties[fblock.WeightData]
+        self.bone_remap = properties[fblock.BoneMapData]
 
     @staticmethod
     def calc_strip_lengths(face_block):
@@ -181,6 +171,11 @@ class FMat:
     """Load a Frontier material file."""
 
     def __init__(self, mat_block, textures):
+        """
+
+        :type mat_block: mhfrontier.fmod.fblock.MaterialBlock
+        :type textures: list[mhfrontier.fmod.fblock.TextureBlock]
+        """
         self.textureIndices = [
             textures[ix.index].data[0].imageID
             for ix in mat_block.data[0].textureIndices
@@ -219,15 +214,33 @@ class FModel:
         with open(file_path, "rb") as modelFile:
             frontier_file = fblock.FBlock()
             frontier_file.marshall(FileLike(modelFile.read()))
-        if not isinstance(frontier_file.data[1], fblock.MainBlock):
-            raise ValueError("Second child should be " + fblock.MainBlock.__name__)
+        for i, datum in enumerate(frontier_file.data[1:4]):
+            if not isinstance(datum, fblock.FileBlock):
+                raise TypeError(
+                    f"Child {i} should be {fblock.FileBlock.__name__}, "
+                    f"found type is {type(datum)}"
+                )
         meshes = frontier_file.data[1].data
-        if not isinstance(frontier_file.data[2], fblock.MaterialBlock):
-            raise ValueError("Third child should be " + fblock.MaterialBlock.__name__)
+        for i, mesh in enumerate(meshes):
+            if not isinstance(mesh, fblock.MainBlock):
+                raise TypeError(
+                    f"Block type should be {fblock.MainBlock.__name__}, "
+                    f"found type is {type(mesh)}"
+                )
         materials = frontier_file.data[2].data
-        if not isinstance(frontier_file.data[3], fblock.TextureBlock):
-            raise ValueError("Third child should be " + fblock.MainBlock.__name__)
+        for i, material in enumerate(materials):
+            if not isinstance(material, fblock.MaterialBlock):
+                raise TypeError(
+                    f"Block {i} should be {fblock.MaterialBlock.__name__}, "
+                    f"found type is {type(frontier_file.data[2].data)}"
+                )
         textures = frontier_file.data[3].data
+        for i, texture in enumerate(textures):
+            if not isinstance(texture, fblock.TextureBlock):
+                raise TypeError(
+                    f"Block {i} should be {fblock.TextureBlock.__name__}, "
+                    f"found type is {type(texture)}"
+                )
         self.mesh_parts = [FMesh(mesh) for mesh in meshes]
         self.materials = [FMat(material, textures) for material in materials]
         frontier_file.pretty_print()

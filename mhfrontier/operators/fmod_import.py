@@ -37,18 +37,16 @@ class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     )
 
     def execute(self, _context):
+        """Import the model to the scene."""
         try:
             bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
             print(error)
         bpy.ops.object.select_all(action="DESELECT")
 
-        importer = fmod_importer_layer.FModImporter()
         if self.clear_scene:
-            importer.clear_scene()
-        importer.maximize_clipping()
-        importer.execute(self.properties.filepath, self.import_textures)
-        importer.maximize_clipping()
+            fmod_importer_layer.clear_scene()
+        fmod_importer_layer.import_model(self.properties.filepath, self.import_textures)
         return {"FINISHED"}
 
 

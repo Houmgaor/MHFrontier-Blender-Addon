@@ -44,7 +44,8 @@ To get any data to extract, you need a Monster Hunter Frontier Z game.
 Then, the game data need to be decompressed,
 you don't need to decompress everything as the monster models are in "[your MHFrontier folder]/dat/emmodel[_hd]".
 To known which file is which monster you can
-use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380d9f217d17eb89ca3d075206ee/monster_ids.md) as a
+use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380d9f217d17eb89ca3d075206ee/monster_ids.md)
+as a
 reference.
 To decompress data use [ReFrontier](https://github.com/Houmgaor/ReFrontier).
 You want .fmod (3D model) and .fskl (skeleton) files.
@@ -53,6 +54,7 @@ You want .fmod (3D model) and .fskl (skeleton) files.
 
 - Compatibility with Blender 2.8+.
 - Correctly scale and orient models.
+- Less memory usage, preventing crash.
 - Documentation.
 - Code linting.
 
