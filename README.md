@@ -1,6 +1,6 @@
-# Monster-Hunter-Frontier-Importer
+# Monster Hunter Frontier Blender Add-on
 
-A model importer for Monster Hunter Frontier FMod Files into Blender.
+A model importer for Monster Hunter Frontier FMOD/FSKL Files into Blender.
 
 ## Install
 
@@ -40,14 +40,14 @@ python extra/zip_addon.py
 
 ## Get FMOD/FSKL files
 
-To have any data to extract, you need a Monster Hunter Frontier Z game.
+To get any data to extract, you need a Monster Hunter Frontier Z game.
 Then, the game data need to be decompressed,
-you don't need to decompress everything as the monster models are in "[yout MHFrontier folder]/dat/emmodel[_hd]".
+you don't need to decompress everything as the monster models are in "[your MHFrontier folder]/dat/emmodel[_hd]".
 To known which file is which monster you can
-use [em.md](https://github.com/Houmgaor/ReFrontier/blob/1cc4bace77766868ba1d6230b39dce0a8a7f6d9b/data_dumps/em.md) as a
+use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380d9f217d17eb89ca3d075206ee/monster_ids.md) as a
 reference.
 To decompress data use [ReFrontier](https://github.com/Houmgaor/ReFrontier).
-You want .fmod (3D model) or .fskl (skeleton) files.
+You want .fmod (3D model) and .fskl (skeleton) files.
 
 ## In this fork (Houmgaor/)
 
