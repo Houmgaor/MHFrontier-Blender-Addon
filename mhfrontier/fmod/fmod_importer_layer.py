@@ -154,7 +154,7 @@ class FModImporter:
         for meshBoneIx, group in weights.items():
             group_ix = remap[meshBoneIx]
             group_id = "%03d" % group_ix if isinstance(group_ix, int) else str(group_ix)
-            group_name = "Bone.%s" % str(group_id)
+            group_name = f"Bone.{group_id}"
             for vertex, weight in group:
                 if group_name not in mesh_obj.vertex_groups:
                     mesh_obj.vertex_groups.new(name=group_name)  # blenderObject Maybe?
@@ -200,22 +200,24 @@ class FModImporter:
             # Construction
             setup = bnf.principled_setup(node_tree)
             next(setup)
-            if diffuse_ix is not None:
+            if diffuse_ix is None:
+                setup.send(None)
+            else:
                 diffuse_node = bnf.diffuse_setup(node_tree, get_texture(diffuse_ix))
                 setup.send(diffuse_node)
-            else:
-                setup.send(None)
 
-            if normal_ix is not None:
+            if normal_ix is None:
+                setup.send(None)
+            else:
                 normal_node = bnf.normal_setup(node_tree, get_texture(normal_ix))
                 setup.send(normal_node)
-            else:
+
+            if specular_ix is None:
                 setup.send(None)
-            if specular_ix is not None:
+            else:
                 specular_node = bnf.specular_setup(node_tree, get_texture(specular_ix))
                 setup.send(specular_node)
-            else:
-                setup.send(None)
+
             bnf.finish_setup(node_tree, next(setup))
             # Assign texture: FModImporter.assignTexture(mesh, textureData)
 

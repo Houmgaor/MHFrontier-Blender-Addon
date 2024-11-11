@@ -99,10 +99,11 @@ class WeightData(PyCStruct):
 
     def marshall(self, data):
         super().marshall(data)
-        self.weights = [Weight() for i in range(self.count)]
+        self.weights = [Weight() for _ in range(self.count)]
         [w.marshall(data) for w in self.weights]
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, base=0):
+        """Disables printing."""
         pass
 
 
@@ -168,41 +169,46 @@ class FBlock:
         for datum in self.data:
             datum.marshall(sub_data)
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, indents=0):
+        """
+        Nice display of the block and its hierarchy in the console.
+
+        :param int indents: Number of indentation to set.
+        """
         name = type(self.get_type()).__name__
-        print(f"{base}{name}: {self.header.count} \t{hex(self.header.type)}")
+        print("\t" * indents + f"{name}: {self.header.count} \t{hex(self.header.type)}")
         for datum in self.data:
-            datum.pretty_print(base + "\t")
+            datum.pretty_print(indents + 1)
 
     def get_type(self):
-        return self.type_lookup(self.header.type)()
+        return fblock_type_lookup(self.header.type)()
 
-    @staticmethod
-    def type_lookup(value):
-        """Return the block corresponding to value."""
 
-        types = {
-            0x00020000: InitBlock,
-            0x00000001: FileBlock,
-            0x00000002: MainBlock,
-            0x00000004: ObjectBlock,
-            0x00000005: FaceBlock,
-            0x00000009: MaterialBlock,
-            0x0000000A: TextureBlock,
-            0xC0000000: SkeletonBlock,
-            0x40000001: BoneBlock,
-            0x00030000: TrisStripsData,
-            0x00040000: TrisStripsData,
-            0x00050000: MaterialList,
-            0x00060000: MaterialMap,
-            0x00070000: VertexData,
-            0x00080000: NormalsData,
-            0x000A0000: UVData,
-            0x000B0000: RGBData,
-            0x000C0000: WeightData,
-            0x00100000: BoneMapData,
-        }
-        return types[value] if value in types else UnknBlock
+def fblock_type_lookup(value):
+    """Return the block corresponding to value."""
+
+    types = {
+        0x00020000: InitBlock,
+        0x00000001: FileBlock,
+        0x00000002: MainBlock,
+        0x00000004: ObjectBlock,
+        0x00000005: FaceBlock,
+        0x00000009: MaterialBlock,
+        0x0000000A: TextureBlock,
+        0xC0000000: SkeletonBlock,
+        0x40000001: BoneBlock,
+        0x00030000: TrisStripsData,
+        0x00040000: TrisStripsData,
+        0x00050000: MaterialList,
+        0x00060000: MaterialMap,
+        0x00070000: VertexData,
+        0x00080000: NormalsData,
+        0x000A0000: UVData,
+        0x000B0000: RGBData,
+        0x000C0000: WeightData,
+        0x00100000: BoneMapData,
+    }
+    return types[value] if value in types else UnknBlock
 
 
 class FileBlock(FBlock):
@@ -229,7 +235,7 @@ class SimpleFBlock(FBlock):
     def get_type(self):
         return self.ftype()
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, indents=""):
         pass
 
 
@@ -330,7 +336,7 @@ class InitBlock(FBlock):
         self.data = InitData()
         self.data.marshall(data)
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, indents=""):
         pass
 
 
@@ -338,7 +344,7 @@ class UnknBlock(FBlock):
     def marshall(self, data):
         self.data = data
 
-    def pretty_print(self, base=""):
+    def pretty_print(self, indents=0):
         pass
 
 

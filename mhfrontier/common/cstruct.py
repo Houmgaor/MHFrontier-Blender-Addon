@@ -60,6 +60,13 @@ def minifloat_serialize(x):
 
 class PyCStruct(abc.ABC):
     def __init__(self, data=None, _parent=None, **kwargs):
+        """
+        Define the structure.
+
+        :param data: C-compatible object to load data from.
+        :type data: mhfrontier.fmod.fblock.FBlock
+        :param dict kwargs: Alternative to data if None
+        """
         if not hasattr(self, "fields"):
             raise ValueError("fields should be implemented!")
         self.CStruct = Cstruct(self.fields)
@@ -82,6 +89,8 @@ class PyCStruct(abc.ABC):
         return len(self.CStruct)
 
     def marshall(self, data):
+        """Set each property found in the block as an object attribute."""
+
         for attr, value in self.CStruct.marshall(data).items():
             self.__setattr__(attr, value)
 
