@@ -1,15 +1,15 @@
 """Basic testing for FMOD, loads files from ../models."""
 
 import os
-import unittest
 import random
+import unittest
 
-from mhfrontier.fmod import fmod
+from mhfrontier.fmod import fskl
 
 
-def get_fmod_files(directory):
+def get_fskl_files(directory):
     """
-    Recursively find all .fmod files in the given directory and its subdirectories.
+    Recursively find all .fskl files in the given directory and its subdirectories.
 
     :param str directory: The path of the directory to search for .fmod
     :return list[str]: A list of file paths with the ".fmod" extension.
@@ -26,7 +26,7 @@ def get_fmod_files(directory):
                 # For each file in the current directory
                 for file in files:
                     # Check if the file has the ".fmod" extension
-                    if file.endswith(".fmod"):
+                    if file.endswith(".fskl"):
                         # Construct the full path of the file
                         fmod_file = os.path.join(root2, file)
                         # Add the file to the list
@@ -35,12 +35,11 @@ def get_fmod_files(directory):
     return fmod_files
 
 
-class TestFModFileLoading(unittest.TestCase):
-    def test_load_fmod_file(self):
-        """Test whether a .fmod file can be loaded."""
-
-        files = get_fmod_files("../models")
-        fmod.load_fmod_file(files[random.randint(0, len(files) - 1)])
+class TestFSklFileLoading(unittest.TestCase):
+    def test_load_fskl_file(self):
+        """Test whether a .fskl file can be loaded."""
+        files = get_fskl_files("../models")
+        fskl.get_frontier_skeleton(files[random.randint(0, len(files) - 1)])
 
 
 if __name__ == "__main__":

@@ -59,31 +59,16 @@ def minifloat_serialize(x):
 
 
 class PyCStruct(abc.ABC):
-    def __init__(self, data=None, _parent=None, **kwargs):
-        """
-        Define the structure.
+    """Recursive block strucutre for Python."""
 
-        :param data: C-compatible object to load data from.
-        :type data: mhfrontier.fmod.fblock.FBlock | None
-        :param dict kwargs: Alternative to data if None
+    def __init__(self, fields):
         """
-        if not hasattr(self, "fields"):
-            raise ValueError("fields should be implemented!")
+        Define the C structure from fields.
+
+        :param collections.OrderedDict fields:
+        """
+        self.fields = fields
         self.CStruct = Cstruct(self.fields)
-        if data is not None:
-            self.marshall(data)
-        elif kwargs:
-            fields_keys = set(self.fields.keys())
-            entry_keys = set(kwargs.keys())
-            if fields_keys == entry_keys:
-                for attr, value in kwargs.items():
-                    self.__setattr__(attr, value)
-            else:
-                if fields_keys > entry_keys:
-                    raise AttributeError("Missing fields to Initialize")
-                if fields_keys < entry_keys:
-                    raise AttributeError("Excessive Fields passed")
-                raise AttributeError("Field Mismatch")
 
     def __len__(self):
         return len(self.CStruct)
@@ -93,6 +78,8 @@ class PyCStruct(abc.ABC):
 
         items = self.CStruct.marshall(data).items()
         for attr, value in items:
+            if not hasattr(self, attr):
+                raise AttributeError(f"Object {self} has no attribute {attr}")
             self.__setattr__(attr, value)
 
     def serialize(self):
@@ -190,25 +177,30 @@ class Cstruct:
         data_type = Cstruct.CTypes[base]
         int_size = int(size)
 
-        if base != "char":
-            return {
-                "size": int_size * data_type["size"],
-                "deserializer": lambda x: [
-                    data_type["deserializer"](chunk)
-                    for chunk in chunks(x, data_type["size"])
-                ],
-                "serializer": lambda x: b"".join(map(data_type["serializer"], x)),
-            }
-        return {
-            "size": int_size * data_type["size"],
-            "deserializer": lambda x: "".join(
-                [
-                    data_type["deserializer"](chunk).decode("ascii")
-                    for chunk in chunks(x, data_type["size"])
-                ]
-            ),
-            "serializer": lambda x: x.encode("ascii").ljust(int_size, b"\x00"),
-        }
+        output = {"size": int_size * data_type["size"]}
+        if base == "char":
+            output.update(
+                {
+                    "deserializer": lambda x: "".join(
+                        [
+                            data_type["deserializer"](chunk).decode("ascii")
+                            for chunk in chunks(x, data_type["size"])
+                        ]
+                    ),
+                    "serializer": lambda x: x.encode("ascii").ljust(int_size, b"\x00"),
+                }
+            )
+        else:
+            output.update(
+                {
+                    "deserializer": lambda x: [
+                        data_type["deserializer"](chunk)
+                        for chunk in chunks(x, data_type["size"])
+                    ],
+                    "serializer": lambda x: b"".join(map(data_type["serializer"], x)),
+                }
+            )
+        return output
 
     def __init__(self, fields):
         """
@@ -244,47 +236,3 @@ class Cstruct:
                 for varName, typeOperator in self.struct.items()
             ]
         )
-
-
-class Mod3Container:
-    def __init__(self, mod3class, containee_count=0):
-        self.mod3Array = [mod3class() for _ in range(containee_count)]
-
-    def marshall(self, data):
-        for x in self.mod3Array:
-            x.marshall(data)
-
-    def construct(self, data):
-        if len(data) != len(self.mod3Array):
-            raise AssertionError(
-                "Cannot construct container with different amounts of data"
-            )
-        for x, d in zip(self.mod3Array, data):
-            x.construct(d)
-
-    def serialize(self):
-        return b"".join(element.serialize() for element in self.mod3Array)
-
-    def __iter__(self):
-        return self.mod3Array.__iter__()
-
-    def __getitem__(self, ix):
-        return self.mod3Array.__getitem__(ix)
-
-    def __len__(self):
-        if self.mod3Array:
-            return len(self.mod3Array) * len(self.mod3Array[0])
-        return 0
-
-    def append(self, ele):
-        self.mod3Array.append(ele)
-
-    def pop(self, ix):
-        self.mod3Array.pop(ix)
-
-    def count(self):
-        return len(self.mod3Array)
-
-    def verify(self):
-        for x in self.mod3Array:
-            x.verify()

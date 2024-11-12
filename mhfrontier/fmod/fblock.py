@@ -13,95 +13,83 @@ from ..common.cstruct import PyCStruct
 from ..common.filelike import FileLike
 
 
-class Byte4(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("array", "byte[4]"),
-        ]
-    )
-
-    def __init__(self, data=None, parent=None, **kwargs):
-        self.array = None
-        super().__init__(data, parent, **kwargs)
-
-
 class UIntField(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("id", "uint32"),
-        ]
-    )
-
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.id = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("id", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class UV(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("u", "float"),
-            ("v", "float"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.u = None
         self.v = None
-        super().__init__(data, parent, **kwargs)
+
+        fields = OrderedDict(
+            [
+                ("u", "float"),
+                ("v", "float"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class Vect3(PyCStruct):
-    fields = OrderedDict([("x", "float"), ("y", "float"), ("z", "float")])
-
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.x = None
         self.y = None
         self.z = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict([("x", "float"), ("y", "float"), ("z", "float")])
+
+        super().__init__(fields)
 
 
 class Vect4(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("x", "float"),
-            ("y", "float"),
-            ("z", "float"),
-            ("w", "float"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.x = None
         self.y = None
         self.z = None
         self.w = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("x", "float"),
+                ("y", "float"),
+                ("z", "float"),
+                ("w", "float"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class VertexId(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("id", "uint32"),
-        ]
-    )
 
     def __init__(self):
         self.id = None
-        super().__init__()
+        fields = OrderedDict(
+            [
+                ("id", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class TrisTrip(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("count", "uint32"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.count = None
         self.vertices = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("count", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
     def marshall(self, data):
         super().marshall(data)
@@ -111,30 +99,30 @@ class TrisTrip(PyCStruct):
 
 
 class Weight(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("boneID", "uint32"),
-            ("weightValue", "float"),
-        ]
-    )
 
     def __init__(self):
         self.boneID = None
         self.weightValue = None
-        super().__init__()
+        fields = OrderedDict(
+            [
+                ("boneID", "uint32"),
+                ("weightValue", "float"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class WeightData(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("count", "uint32"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.count = None
         self.weights = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("count", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
     def marshall(self, data):
         super().marshall(data)
@@ -148,70 +136,70 @@ class WeightData(PyCStruct):
 
 
 class BoneBlock(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("nodeID", "int32"),
-            ("parentID", "int32"),
-            ("leftChild", "int32"),
-            ("rightSibling", "int32"),
-            ("vec1", "float[4]"),
-            ("vec2", "float[4]"),
-            ("posVec", "float[4]"),
-            ("null", "uint32"),
-            ("chainID", "uint32"),
-            ("unkn2", "uint32[46]"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.nodeID = None
         self.parentID = None
         self.leftChild = None
         self.rightSibling = None
         self.vec1 = None
         self.vec2 = None
-        self.poseVec = None
+        self.posVec = None
         self.null = None
         self.chainID = None
         self.unkn2 = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("nodeID", "int32"),
+                ("parentID", "int32"),
+                ("leftChild", "int32"),
+                ("rightSibling", "int32"),
+                ("vec1", "float[4]"),
+                ("vec2", "float[4]"),
+                ("posVec", "float[4]"),
+                ("null", "uint32"),
+                ("chainID", "uint32"),
+                ("unkn2", "uint32[46]"),
+            ]
+        )
+        super().__init__(fields)
 
     def pretty_print(self, indent=0):
         pass
 
 
 class TextureData(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("imageID", "uint32"),
-            ("width", "uint32"),
-            ("height", "uint32"),
-            ("unkn", "byte[244]"),
-        ]
-    )
-
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.imageID = None
         self.width = None
         self.height = None
         self.unkn = None
-        super().__init__(data, parent, **kwargs)
+
+        fields = OrderedDict(
+            [
+                ("imageID", "uint32"),
+                ("width", "uint32"),
+                ("height", "uint32"),
+                ("unkn", "byte[244]"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class FBlockHeader(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("type", "uint32"),
-            ("count", "int32"),
-            ("size", "uint32"),
-        ]
-    )
 
     def __init__(self):
         self.type = None
         self.count = None
         self.size = None
-        super().__init__()
+        fields = OrderedDict(
+            [
+                ("type", "uint32"),
+                ("count", "int32"),
+                ("size", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class FBlock:
@@ -326,6 +314,11 @@ class SkeletonBlock(FBlock):
 
 
 class SimpleFBlock(FBlock):
+
+    def __init__(self, ftype):
+        self.ftype = ftype
+        super().__init__()
+
     def get_type(self):
         return self.ftype()
 
@@ -334,29 +327,8 @@ class SimpleFBlock(FBlock):
 
 
 class MaterialHeader(PyCStruct):
-    fields = OrderedDict(
-        [
-            ("unkn1", "uint32"),
-            ("unkn2", "uint32"),
-            ("blockSize", "uint32"),
-            ("unkn3", "float"),
-            ("unkn4", "float"),
-            ("unkn5", "float"),
-            ("unkn6", "float"),
-            ("unkn7", "float"),
-            ("unkn8", "float"),
-            ("unkn9", "float"),
-            ("float0", "float"),
-            ("float1", "float"),
-            ("float2", "float"),
-            ("float3", "float"),
-            ("textureCount", "uint32"),
-            ("unkn11", "float"),
-            ("unkn12", "uint32"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.unkn1 = None
         self.unkn2 = None
         self.blockSize = None
@@ -374,7 +346,28 @@ class MaterialHeader(PyCStruct):
         self.textureCount = None
         self.unkn11 = None
         self.unkn12 = None
-        super().__init__(data, parent, **kwargs)
+        fields = OrderedDict(
+            [
+                ("unkn1", "uint32"),
+                ("unkn2", "uint32"),
+                ("blockSize", "uint32"),
+                ("unkn3", "float"),
+                ("unkn4", "float"),
+                ("unkn5", "float"),
+                ("unkn6", "float"),
+                ("unkn7", "float"),
+                ("unkn8", "float"),
+                ("unkn9", "float"),
+                ("float0", "float"),
+                ("float1", "float"),
+                ("float2", "float"),
+                ("float3", "float"),
+                ("textureCount", "uint32"),
+                ("unkn11", "float"),
+                ("unkn12", "uint32"),
+            ]
+        )
+        super().__init__(fields)
 
 
 class MaterialChannelMapping(PyCStruct):
@@ -382,7 +375,7 @@ class MaterialChannelMapping(PyCStruct):
         self.unkn = None
         self.TextureLinkDif = None
         if blocksize > 272:
-            self.fields = OrderedDict(
+            fields = OrderedDict(
                 [
                     ("unkn", "uint32[%s]" % (blocksize - 80)),
                     ("TextureLinkDif", "uint32"),
@@ -391,7 +384,7 @@ class MaterialChannelMapping(PyCStruct):
                 ]
             )
         else:
-            self.fields = OrderedDict(
+            fields = OrderedDict(
                 [
                     ("unkn", "byte[%s]" % (blocksize - 72)),
                     ("TextureLinkDif", "uint32"),
@@ -401,35 +394,20 @@ class MaterialChannelMapping(PyCStruct):
         # May not be set if blocksize below 272
         self.TextureLinkNor = None
         self.TextureLinkSpe = None
-        super().__init__()
+        super().__init__(fields)
 
 
 class TextureIndex(PyCStruct):
-    fields = OrderedDict([("index", "uint32")])
 
     def __init__(self):
         self.index = None
-        super().__init__()
+        fields = OrderedDict([("index", "uint32")])
+        super().__init__(fields)
 
 
 class MaterialData(PyCStruct):
-    fields = OrderedDict(
-        [
-            # ("unkn1" , "uint32"),
-            # ("unkn2" , "uint32"),
-            # ("blockSize" , "uint32"),
-            ("unkn3", "float[3]"),
-            ("unkn6", "float"),
-            ("unkn7", "float[3]"),
-            ("float4", "float[4]"),
-            ("unkn8", "uint32"),
-            ("unkn9", "float"),
-            ("textureCount", "uint32"),
-            ("unkn", "byte[200]"),
-        ]
-    )
 
-    def __init__(self, data=None, parent=None, **kwargs):
+    def __init__(self):
         self.unkn3 = None
         self.unkn6 = None
         self.unkn7 = None
@@ -438,10 +416,25 @@ class MaterialData(PyCStruct):
         self.unkn9 = None
         self.textureCount = None
         self.unkn = None
+        fields = OrderedDict(
+            [
+                # ("unkn1" , "uint32"),
+                # ("unkn2" , "uint32"),
+                # ("blockSize" , "uint32"),
+                ("unkn3", "float[3]"),
+                ("unkn6", "float"),
+                ("unkn7", "float[3]"),
+                ("float4", "float[4]"),
+                ("unkn8", "uint32"),
+                ("unkn9", "float"),
+                ("textureCount", "uint32"),
+                ("unkn", "byte[200]"),
+            ]
+        )
 
         # Supplementary property
         self.textureIndices = None
-        super().__init__(data, parent, **kwargs)
+        super().__init__(fields)
 
     def marshall(self, data):
         super().marshall(data)
@@ -451,19 +444,22 @@ class MaterialData(PyCStruct):
 
 
 class TextureBlock(SimpleFBlock):
-    ftype = TextureData
+    def __init__(self):
+        super().__init__(TextureData)
 
 
 class MaterialBlock(SimpleFBlock):
-    ftype = MaterialData
+    def __init__(self):
+        super().__init__(MaterialData)
 
 
 class InitData(PyCStruct):
-    fields = {"data": "uint32"}
+    """Simple structure containing 32 bits of data."""
 
     def __init__(self):
         self.data = None
-        super().__init__()
+        fields = OrderedDict([("data", "uint32")])
+        super().__init__(fields)
 
 
 class InitBlock(FBlock):
@@ -507,12 +503,6 @@ class TrisStripsData(DataContainer):
 
     def __init__(self):
         super().__init__(TrisTrip)
-
-
-class ByteArrayData(DataContainer):
-
-    def __init__(self):
-        super().__init__(Byte4)
 
 
 class MaterialList(DataContainer):
