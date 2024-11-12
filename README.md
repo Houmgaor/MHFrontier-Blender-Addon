@@ -11,7 +11,7 @@ Install as any Blender add-on:
 
 ## Usage
 
-Locate the data you want to import, have a look at [Get FMOD/FSKL files](#get-fmodfskl-files) to find them.
+Locate the data you want to import, have a look at the [documentation](#documentation) section to find them.
 Open Blender, ``File > Import > MHF FMOD``, select the file.
 
 ![Disufiroa with textures](https://github.com/user-attachments/assets/392141c6-064c-480b-b044-8cd85c70fda7)
@@ -46,7 +46,10 @@ Otherwise we provide a legacy Python script:
 python extra/zip_addon.py
 ```
 
-## Get FMOD/FSKL files
+## Documentation
+
+An online documentation is available
+at [Getting started (Frontier Z)](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Getting-Started-(Frontier-Z)).
 
 To get any data to extract, you need a Monster Hunter Frontier Z game.
 Then, the game data need to be decompressed,
@@ -57,6 +60,9 @@ use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380
 as a reference.
 To decompress data use [ReFrontier](https://github.com/Houmgaor/ReFrontier).
 You want .fmod (3D model) and .fskl (skeleton) files.
+
+For the next steps, you can follow
+the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blender-Importing-(Frontier-Z)).
 
 ## In this fork (Houmgaor/)
 
