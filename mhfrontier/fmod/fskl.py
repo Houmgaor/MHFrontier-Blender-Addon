@@ -5,7 +5,8 @@ Created on Sun Dec 29 21:50:00 2019
 @author: AsteriskAmpersand
 """
 from ..fmod import fblock
-from ..common.filelike import FileLike
+from ..common import filelike
+from ..common import standard_structures
 
 
 class FBone:
@@ -19,9 +20,10 @@ class FBone:
         :type frontier_bone: mhfrontier.fmod.fblock.FBlock
         """
         source = frontier_bone.data[0]
-        if not isinstance(source, fblock.BoneBlock):
+        if not isinstance(source, standard_structures.BoneBlock):
             raise TypeError(
-                f"Should be {fblock.BoneBlock.__name__}, " f"type is {type(source)}"
+                f"Should be {standard_structures.BoneBlock.__name__}, "
+                f"type is {type(source)}"
             )
 
         self.nodeID = frontier_bone.data[0].nodeID
@@ -45,7 +47,7 @@ def get_frontier_skeleton(file_path):
     """
     with open(file_path, "rb") as modelFile:
         frontier_file = fblock.FBlock()
-        frontier_file.marshall(FileLike(modelFile.read()))
+        frontier_file.marshall(filelike.FileLike(modelFile.read()))
     bones = frontier_file.data[1:]
     skeleton = {}
     for fileBone in bones:

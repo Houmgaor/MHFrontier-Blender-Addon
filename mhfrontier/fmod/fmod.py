@@ -9,7 +9,9 @@ Created on Fri Apr  5 23:03:36 2019
 import warnings
 
 from ..fmod import fblock
-from ..common.filelike import FileLike
+from ..common.standard_structures import WeightData
+from ..common import data_containers as containers
+from ..common import filelike
 
 
 def frontier_faces(face_block):
@@ -89,21 +91,21 @@ class FMesh:
             if typing is fblock.FaceBlock:
                 face_data = objectBlock.data
                 properties[typing] = frontier_faces(face_data)
-            elif typing is fblock.MaterialList:
+            elif typing is containers.MaterialList:
                 properties[typing] = frontier_remap_block(objectBlock.data)
-            elif typing is fblock.MaterialMap:
+            elif typing is containers.MaterialMap:
                 properties[typing] = frontier_remap_block(objectBlock.data)
-            elif typing is fblock.VertexData:
+            elif typing is containers.VertexData:
                 properties[typing] = frontier_vertices(objectBlock.data)
-            elif typing is fblock.NormalsData:
+            elif typing is containers.NormalsData:
                 properties[typing] = frontier_normals(objectBlock.data)
-            elif typing is fblock.UVData:
+            elif typing is containers.UVData:
                 properties[typing] = frontier_uvs(objectBlock.data)
-            elif typing is fblock.RGBData:
+            elif typing is containers.RGBData:
                 properties[typing] = frontier_rgb(objectBlock.data)
-            elif typing is fblock.WeightData:
+            elif typing is WeightData:
                 properties[typing] = frontier_weights(objectBlock.data)
-            elif typing is fblock.BoneMapData:
+            elif typing is containers.BoneMapData:
                 properties[typing] = frontier_remap_block(objectBlock.data)
             elif typing is fblock.UnknBlock:
                 properties[typing] = objectBlock.data
@@ -111,31 +113,31 @@ class FMesh:
                 warnings.warn(f"Unknown block type {type(objectBlock)}")
 
         self.faces = properties[fblock.FaceBlock]
-        self.material_list = properties[fblock.MaterialList]
+        self.material_list = properties[containers.MaterialList]
         self.material_map = None
-        if fblock.MaterialMap in properties and fblock.FaceBlock in properties:
+        if containers.MaterialMap in properties and fblock.FaceBlock in properties:
             self.material_map = self.decompose_material_list(
-                properties[fblock.MaterialMap], self.calc_strip_lengths(face_data)
+                properties[containers.MaterialMap], self.calc_strip_lengths(face_data)
             )
-        self.vertices = properties[fblock.VertexData]
-        self.normals = properties[fblock.NormalsData]
+        self.vertices = properties[containers.VertexData]
+        self.normals = properties[containers.NormalsData]
         # Some blocks store visual effects and other properties,
         # they do not have uv or weight
-        if fblock.UVData in properties:
-            self.uvs = properties[fblock.UVData]
+        if containers.UVData in properties:
+            self.uvs = properties[containers.UVData]
         else:
             warnings.warn("No UV data found for this model. Texture won't be rendered.")
             self.uvs = None
-        self.rgb_like = properties[fblock.RGBData]
-        if fblock.WeightData in properties:
-            self.weights = properties[fblock.WeightData]
+        self.rgb_like = properties[containers.RGBData]
+        if WeightData in properties:
+            self.weights = properties[WeightData]
         else:
             warnings.warn(
                 "No weights data found for this model. Pose editing won't work."
             )
             self.weights = None
-        if fblock.BoneMapData in properties:
-            self.bone_remap = properties[fblock.BoneMapData]
+        if containers.BoneMapData in properties:
+            self.bone_remap = properties[containers.BoneMapData]
         else:
             warnings.warn("No bone map data. Pose won't be available.")
             self.bone_remap = None
@@ -198,7 +200,7 @@ def load_fmod_file(file_path):
 
     with open(file_path, "rb") as modelFile:
         frontier_file = fblock.FBlock()
-        frontier_file.marshall(FileLike(modelFile.read()))
+        frontier_file.marshall(filelike.FileLike(modelFile.read()))
     print("FMOD file structure\n===================")
     frontier_file.pretty_print()
     for i, datum in enumerate(frontier_file.data[1:4]):

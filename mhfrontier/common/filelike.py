@@ -1,4 +1,6 @@
 """
+FileLike format definition.
+
 Created on Sat Feb  9 00:55:14 2019
 
 @author: AsteriskAmpersand

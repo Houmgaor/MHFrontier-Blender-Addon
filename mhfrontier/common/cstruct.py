@@ -4,7 +4,6 @@ Created on Mon Jan 28 13:38:38 2019
 
 @author: AsteriskAmpersand
 """
-import abc
 import struct
 from collections import OrderedDict
 from binascii import hexlify
@@ -56,28 +55,6 @@ def minifloat_serialize(x):
     else:
         f16 = sign
     return struct.pack("H", f16)
-
-
-class PyCStruct(abc.ABC):
-    """Recursive block structure for Python."""
-
-    def __init__(self, fields):
-        """
-        Define the C structure from fields.
-
-        :param collections.OrderedDict fields:
-        """
-        self.fields = fields
-        self.CStruct = Cstruct(self.fields)
-
-    def marshall(self, data):
-        """Set each property found in the block as an object attribute."""
-
-        items = self.CStruct.marshall(data).items()
-        for attr, value in items:
-            if not hasattr(self, attr):
-                raise AttributeError(f"Object {self} has no attribute {attr}")
-            self.__setattr__(attr, value)
 
 
 def deserializer(data_format, size):
