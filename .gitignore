@@ -38,3 +38,6 @@ __pycache__
 mhfrontier/mhfrontier_model_importer-*.zip
 # Legacy path
 mhfrontier_model_importer.zip
+
+# Do not include the models for testing
+tests/models

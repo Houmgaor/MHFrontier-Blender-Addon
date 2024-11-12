@@ -64,7 +64,7 @@ class PyCStruct(abc.ABC):
         Define the structure.
 
         :param data: C-compatible object to load data from.
-        :type data: mhfrontier.fmod.fblock.FBlock
+        :type data: mhfrontier.fmod.fblock.FBlock | None
         :param dict kwargs: Alternative to data if None
         """
         if not hasattr(self, "fields"):
@@ -91,7 +91,8 @@ class PyCStruct(abc.ABC):
     def marshall(self, data):
         """Set each property found in the block as an object attribute."""
 
-        for attr, value in self.CStruct.marshall(data).items():
+        items = self.CStruct.marshall(data).items()
+        for attr, value in items:
             self.__setattr__(attr, value)
 
     def serialize(self):

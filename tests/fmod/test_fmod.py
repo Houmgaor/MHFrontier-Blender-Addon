@@ -1,0 +1,45 @@
+"""Basic testing for FMOD, loads files from ../models."""
+
+import os
+import unittest
+
+from mhfrontier.fmod import fmod
+
+
+def get_fmod_files(directory):
+    """
+    Recursively find all .fmod files in the given directory and its subdirectories.
+
+    :param str directory: The path of the directory to search for .fmod
+    :return list[str]: A list of file paths with the ".fmod" extension.
+    """
+
+    fmod_files = []
+
+    # Iterate over each item in the directory tree
+    for root, dirs, _files in os.walk(directory):
+        # Search in subdirectories only
+        for sub_directory in dirs:
+            sub_path = os.path.join(root, sub_directory)
+            for root2, _dirs, files in os.walk(sub_path):
+                # For each file in the current directory
+                for file in files:
+                    # Check if the file has the ".fmod" extension
+                    if file.endswith(".fmod"):
+                        # Construct the full path of the file
+                        fmod_file = os.path.join(root2, file)
+                        # Add the file to the list
+                        fmod_files.append(fmod_file)
+
+    return fmod_files
+
+
+class TestFModFileLoading(unittest.TestCase):
+    def test_load_fmod_file(self):
+        for file_path in get_fmod_files("../models")[5:6]:
+
+            fmod.load_fmod_file(file_path)
+
+
+if __name__ == "__main__":
+    unittest.main()
