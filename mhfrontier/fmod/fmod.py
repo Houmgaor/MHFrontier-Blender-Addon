@@ -163,29 +163,26 @@ class FMat:
 
     def __init__(self, mat_block, textures):
         """
+        Load the data to the corresponding values.
 
+        :param mat_block: Material, contains destination data.
         :type mat_block: mhfrontier.fmod.fblock.MaterialBlock
+        :param textures: Information on texture to assign.
         :type textures: list[mhfrontier.fmod.fblock.TextureBlock]
         """
-        self.textureIndices = [
-            textures[ix.index].data[0].imageID
-            for ix in mat_block.data[0].textureIndices
-        ]
-
-    def get_diffuse(self):
-        if len(self.textureIndices) >= 1:
-            return self.textureIndices[0]
-        return None
-
-    def get_normal(self):
-        if len(self.textureIndices) >= 2:
-            return self.textureIndices[1]
-        return None
-
-    def get_specular(self):
-        if len(self.textureIndices) >= 3:
-            return self.textureIndices[2]
-        return None
+        self.diffuse_id = None
+        self.normal_id = None
+        self.specular_id = None
+        for i, ix in enumerate(mat_block.data[0].textureIndices):
+            image_id = textures[ix.index].data[0].imageID
+            if i == 0:
+                self.diffuse_id = image_id
+            elif i == 1:
+                self.normal_id = image_id
+            elif i == 2:
+                self.specular_id = image_id
+            else:
+                warnings.warn(f"Unknown texture index {i}, will be ignored")
 
 
 def load_fmod_file(file_path):
@@ -231,5 +228,5 @@ def load_fmod_file(file_path):
                 f"found type is {type(texture)}"
             )
     mesh_parts = [FMesh(mesh) for mesh in meshes]
-    materials = [FMat(material, textures) for material in materials]
-    return mesh_parts, materials
+    out_materials = [FMat(material, textures) for material in materials]
+    return mesh_parts, out_materials

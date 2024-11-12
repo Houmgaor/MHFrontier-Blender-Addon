@@ -25,9 +25,21 @@ def import_model(fmod_path, import_textures_prop):
     """
     bpy.context.scene.render.engine = "CYCLES"
     meshes, materials = fmod.load_fmod_file(fmod_path)
+
+    # Create new materials
     blender_materials = {}
+    for mesh in meshes:
+        for mat_id in mesh.material_list:
+            if mat_id not in blender_materials:
+                blender_materials[mat_id] = bpy.data.materials.new(
+                    name="FrontierMaterial-%03d" % mat_id
+                )
+
+    # Create meshes
     for ix, mesh in enumerate(meshes):
         import_mesh(ix, mesh, blender_materials)
+
+    # Import textures
     if import_textures_prop:
         import_textures(materials, fmod_path, blender_materials)
 
@@ -37,8 +49,10 @@ def import_mesh(index, mesh, blender_materials):
     Import the mesh.
 
     :param int index: Mesh index
-    :param mhfrontier.fmod.fmod.FMesh mesh: fmesh with standard structure
+    :param mesh: fmesh with standard structure.
+    :type mesh: mhfrontier.fmod.fmod.FMesh
     :param blender_materials: Materials associated with the mesh.
+    :type blender_materials: dict[int, bpy.type.Material]
     """
     mesh_objects = []
     bpy.ops.object.select_all(action="DESELECT")
@@ -104,21 +118,21 @@ def create_texture_layer(
     """
     Assign a texture and UV map.
 
-    :param bmesh blender_mesh: bmesh to use.
-    :param list uv: Object UV maps
+    :param bpy.types.Mesh blender_mesh: Mesh to use.
+    :param list[int] uv: Object UV maps
     :param list[int] material_list: List of materials indices
     :param list[int] face_materials: List of face material indices
-    :param list[int] blender_materials: Blender materials already existing.
+    :param blender_materials: Blender materials already existing.
+    :type blender_materials: dict[int, bpy.types.Material]
     """
-    # Add the material to the list
-    for material in material_list:
-        if material not in blender_materials:
-            material_name = "FrontierMaterial-%03d" % material
-            blender_materials[material] = bpy.data.materials.new(name=material_name)
-        blender_mesh.materials.append(blender_materials[material])
+    # Add the materials to the mesh
+    for mat_id in material_list:
+        blender_mesh.materials.append(blender_materials[mat_id])
     if bpy.app.version < (2, 8):
         blender_mesh.uv_textures.new("UV0")
     blender_mesh.update()
+
+    # Create an empty BMesh
     blender_b_mesh = bmesh.new()
     blender_b_mesh.from_mesh(blender_mesh)
 
@@ -134,6 +148,12 @@ def create_texture_layer(
 
 
 def set_normals(normals, mesh_part):
+    """
+    Set normals to the mesh.
+
+    :param list[tuple[float, float, float]] normals: Normals to set
+    :param bpy.types.Mesh mesh_part: Mesh segment.
+    """
     mesh_part.update(calc_edges=True)
 
     cl_normals = array.array("f", [0.0] * (len(mesh_part.loops) * 3))
@@ -181,7 +201,15 @@ def assign_texture(mesh_object, texture_data):
 
 
 def import_textures(materials, path, blender_materials):
-    """Import the textures from the file system."""
+    """
+    Import the textures from the file system.
+
+    :param materials: Materials data.
+    :type materials: list[mhfrontier.fmod.fmod.FMat]
+    :param str path: Path to the FMOD file.
+    :param blender_materials: Dictionary of materials.
+    :type blender_materials: dict[int, bpy.types.Material]
+    """
 
     for ix, mat in blender_materials.items():
         # Setup
@@ -191,9 +219,9 @@ def import_textures(materials, path, blender_materials):
         for node in nodes:
             nodes.remove(node)
         # Preamble
-        diffuse_ix = materials[ix].get_diffuse()
-        normal_ix = materials[ix].get_normal()
-        specular_ix = materials[ix].get_specular()
+        diffuse_ix = materials[ix].diffuse_id
+        normal_ix = materials[ix].normal_id
+        specular_ix = materials[ix].specular_id
         # Get texture files
         texture_files = find_all_textures(path)
         # Construction

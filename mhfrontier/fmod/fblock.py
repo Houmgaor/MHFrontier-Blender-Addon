@@ -129,12 +129,17 @@ class SkeletonBlock(FBlock):
 
 class SimpleFBlock(FBlock):
 
-    def __init__(self, ftype):
-        self.ftype = ftype
+    def __init__(self, struct_type):
+        """
+
+        :param struct_type: Structure to use
+        :type struct_type: Type[mhfrontier.common.pycstruct]
+        """
+        self.struct_type = struct_type
         super().__init__()
 
     def get_type(self):
-        return self.ftype()
+        return self.struct_type()
 
     def pretty_print(self, indents=0):
         pass
