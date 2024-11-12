@@ -225,7 +225,8 @@ class FBlock:
         """
 
         self.header.marshall(data)
-        sub_data = FileLike(data.read(self.header.size - len(self.header)))
+        # Read header only
+        sub_data = FileLike(data.read(self.header.size - self.header.CStruct.size()))
         self.data = [self.get_type() for _ in range(self.header.count)]
         for datum in self.data:
             datum.marshall(sub_data)

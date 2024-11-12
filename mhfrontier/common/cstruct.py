@@ -10,10 +10,10 @@ from collections import OrderedDict
 from binascii import hexlify
 
 
-def chunks(sliceable, n):
-    """Yield successive n-sized chunks from sliceable."""
-    for i in range(0, len(sliceable), n):
-        yield sliceable[i : i + n]
+def chunks(array, n):
+    """Yield successive n-sized chunks from array."""
+    for i in range(0, len(array), n):
+        yield array[i : i + n]
 
 
 def half_to_float(h):
@@ -59,7 +59,7 @@ def minifloat_serialize(x):
 
 
 class PyCStruct(abc.ABC):
-    """Recursive block strucutre for Python."""
+    """Recursive block structure for Python."""
 
     def __init__(self, fields):
         """
@@ -70,9 +70,6 @@ class PyCStruct(abc.ABC):
         self.fields = fields
         self.CStruct = Cstruct(self.fields)
 
-    def __len__(self):
-        return len(self.CStruct)
-
     def marshall(self, data):
         """Set each property found in the block as an object attribute."""
 
@@ -81,37 +78,6 @@ class PyCStruct(abc.ABC):
             if not hasattr(self, attr):
                 raise AttributeError(f"Object {self} has no attribute {attr}")
             self.__setattr__(attr, value)
-
-    def serialize(self):
-        return self.CStruct.serialize(
-            {key: self.__getattribute__(key) for key in self.fields}
-        )
-
-    def __eq__(self, other):
-        return all(
-            [
-                self.__getattribute__(key) == other.__getattribute__(key)
-                for key in self.fields
-            ]
-        )
-
-    defaultProperties = {}
-    requiredProperties = {}
-
-    def construct(self, data):
-        for field in self.fields:
-            if field in data:
-                self.__setattr__(field, data[field])
-            elif field in self.defaultProperties:
-                self.__setattr__(field, self.defaultProperties[field])
-            elif field in self.requiredProperties:
-                raise KeyError("Required Property missing in supplied data")
-            self.__setattr__(field, None)
-
-    def verify(self):
-        for attr in self.fields:
-            if self.__getattribute__(attr) is None:
-                raise AssertionError("Attribute %s is not initialized." % attr)
 
 
 def deserializer(data_format, size):
@@ -220,16 +186,19 @@ class Cstruct:
                     "%s Type is not C Struct class compatible." % fields[name]
                 )
 
-    def __len__(self):
-        return sum([self.struct[element]["size"] for element in self.struct])
+    def size(self):
+        """Total size of the contained data."""
+        return sum(self.struct[element]["size"] for element in self.struct)
 
     def marshall(self, data):
+        """Build a dictionary of deserialized data."""
         return {
             varName: typeOperator["deserializer"](data.read(typeOperator["size"]))
             for varName, typeOperator in self.struct.items()
         }
 
     def serialize(self, data):
+        """Serialize all input data."""
         return b"".join(
             [
                 typeOperator["serializer"](data[varName])
