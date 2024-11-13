@@ -68,18 +68,17 @@ the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blen
 
 - Some models could not load with the original add-on.
 - Compatibility with Blender 2.8+.
-- Correctly scale and orient models.
+- Correctly scales and orients models.
 - Less memory usage, preventing crash.
 - Documentation.
 - Code linting.
 
-## Credits
+## Acknowledgements
 
-### Author
+* @AsteriskAmpersand / *& - Original author.
+* @MHVuze / Vuze - For the Frontier Recursive Block Format documentation used to build this importer.
+* @Silvris - For the Materials and Skeleton documentation used to build this importer.
 
-* **AsteriskAmpersand/\*&**
+## License
 
-### Acknowledgements
-
-* **MHVuze** - For the Frontier Recursive Block Format documentation used to build this importer.
-* **Silvris** - For the Materials and Skeleton documentation used to build this importer.
+Licensed under GPL v3.0, courtesy of @AsteriskAmpersand.

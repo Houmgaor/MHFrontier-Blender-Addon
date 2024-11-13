@@ -16,5 +16,5 @@ blender_version_min = "2.8.0"
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
 license = [
-    "unknown"  # TODO: add a real license
+    "SPDX:GPL-3.0-or-later"
 ]
