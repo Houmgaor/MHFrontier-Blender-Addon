@@ -8,9 +8,7 @@ Created on Thu Apr 04 13:57:02 2019
 
 import abc
 
-from ..common import filelike
-from ..common import standard_structures as sstructs
-from ..common import data_containers as containers
+from ..common import data_containers, filelike, standard_structures
 
 
 class FBlock(abc.ABC):
@@ -23,7 +21,7 @@ class FBlock(abc.ABC):
     def __init__(self, parent=None):
         """Define block from parent with empty data."""
 
-        self.header = sstructs.FBlockHeader()
+        self.header = standard_structures.FBlockHeader()
         self.data = None
         self.parent = parent
 
@@ -83,27 +81,27 @@ def fblock_type_lookup(value):
     if value == 0xC0000000:
         return SkeletonBlock
     if value == 0x40000001:
-        return sstructs.BoneBlock
+        return standard_structures.BoneBlock
     if value == 0x00030000:
-        return containers.TrisStripsData
+        return data_containers.TrisStripsData
     if value == 0x00040000:
-        return containers.TrisStripsData
+        return data_containers.TrisStripsData
     if value == 0x00050000:
-        return containers.MaterialList
+        return data_containers.MaterialList
     if value == 0x00060000:
-        return containers.MaterialMap
+        return data_containers.MaterialMap
     if value == 0x00070000:
-        return containers.VertexData
+        return data_containers.VertexData
     if value == 0x00080000:
-        return containers.NormalsData
+        return data_containers.NormalsData
     if value == 0x000A0000:
-        return containers.UVData
+        return data_containers.UVData
     if value == 0x000B0000:
-        return containers.RGBData
+        return data_containers.RGBData
     if value == 0x000C0000:
-        return sstructs.WeightData
+        return standard_structures.WeightData
     if value == 0x00100000:
-        return containers.BoneMapData
+        return data_containers.BoneMapData
     return UnknBlock
 
 
@@ -147,17 +145,17 @@ class SimpleFBlock(FBlock):
 
 class TextureBlock(SimpleFBlock):
     def __init__(self):
-        super().__init__(sstructs.TextureData)
+        super().__init__(standard_structures.TextureData)
 
 
 class MaterialBlock(SimpleFBlock):
     def __init__(self):
-        super().__init__(sstructs.MaterialData)
+        super().__init__(standard_structures.MaterialData)
 
 
 class InitBlock(FBlock):
     def marshall(self, data):
-        self.data = sstructs.InitData()
+        self.data = standard_structures.InitData()
         self.data.marshall(data)
 
     def pretty_print(self, indents=0):

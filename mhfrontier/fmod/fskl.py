@@ -4,38 +4,8 @@ Created on Sun Dec 29 21:50:00 2019
 
 @author: AsteriskAmpersand
 """
-from ..fmod import fblock
+from ..fmod import fblock, fbone
 from ..common import filelike
-from ..common import standard_structures
-
-
-class FBone:
-    """Simple Frontier bone definition."""
-
-    def __init__(self, frontier_bone):
-        """
-        Create the bone.
-
-        :param frontier_bone: Input bone to parse
-        :type frontier_bone: mhfrontier.fmod.fblock.FBlock
-        """
-        source = frontier_bone.data[0]
-        if not isinstance(source, standard_structures.BoneBlock):
-            raise TypeError(
-                f"Should be {standard_structures.BoneBlock.__name__}, "
-                f"type is {type(source)}"
-            )
-
-        self.nodeID = frontier_bone.data[0].nodeID
-        self.parentID = frontier_bone.data[0].parentID
-        self.leftChild = frontier_bone.data[0].leftChild
-        self.rightSibling = frontier_bone.data[0].rightSibling
-        self.vec1 = frontier_bone.data[0].vec1
-        self.vec2 = frontier_bone.data[0].vec2
-        self.posVec = frontier_bone.data[0].posVec
-        self.null = frontier_bone.data[0].null
-        self.chainID = frontier_bone.data[0].chainID
-        self.unkn2 = frontier_bone.data[0].unkn2
 
 
 def get_frontier_skeleton(file_path):
@@ -55,6 +25,6 @@ def get_frontier_skeleton(file_path):
             raise TypeError(
                 f"Object should be {fblock.FBlock}, type is {type(fileBone)}"
             )
-        frontier_bone = FBone(fileBone)
+        frontier_bone = fbone.FBone(fileBone)
         skeleton[frontier_bone.nodeID] = frontier_bone
     return skeleton

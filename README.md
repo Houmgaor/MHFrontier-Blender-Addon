@@ -46,6 +46,16 @@ Otherwise we provide a legacy Python script:
 python extra/zip_addon.py
 ```
 
+## Test
+
+Tests are performed with [unittest](https://docs.python.org/3/library/unittest.html).
+You need to manually add model folders in ``tests/models/``.
+Then open a terminal in the main folder and run:
+
+```commandline
+python -m unittest discover -s tests/fmod/
+```
+
 ## Documentation
 
 An online documentation is available

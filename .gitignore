@@ -40,4 +40,4 @@ mhfrontier/mhfrontier_model_importer-*.zip
 mhfrontier_model_importer.zip
 
 # Do not include the models for testing
-tests/models
+tests/models/**/

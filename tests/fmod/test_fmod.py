@@ -39,7 +39,7 @@ class TestFModFileLoading(unittest.TestCase):
     def test_load_fmod_file(self):
         """Test whether a .fmod file can be loaded."""
 
-        files = get_fmod_files("../models")
+        files = get_fmod_files("tests/models")
         fmod.load_fmod_file(files[random.randint(0, len(files) - 1)])
 
 

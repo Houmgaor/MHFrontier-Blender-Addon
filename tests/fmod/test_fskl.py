@@ -38,7 +38,7 @@ def get_fskl_files(directory):
 class TestFSklFileLoading(unittest.TestCase):
     def test_load_fskl_file(self):
         """Test whether a .fskl file can be loaded."""
-        files = get_fskl_files("../models")
+        files = get_fskl_files("tests/models")
         fskl.get_frontier_skeleton(files[random.randint(0, len(files) - 1)])
 
 
