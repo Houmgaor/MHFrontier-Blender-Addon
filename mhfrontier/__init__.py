@@ -20,7 +20,7 @@ bl_info = {
     "name": "MHFrontier Model Importer",
     "description": "Import Monster Hunter Frontier model files to Blender.",
     "author": "AsteriskAmpersand (Code), Vuze (Structure), Houmgaor (Update)",
-    "version": (2, 1, 1),
+    "version": (2, 1, 2),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
     "doc_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon",

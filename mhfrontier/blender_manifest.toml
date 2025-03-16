@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "mhfrontier_model_importer"
-version = "2.1.1"
+version = "2.1.2"
 name = "MHFrontier Model Importer"
 tagline = "Import Monster Hunter Frontier model files to Blender"
 maintainer = "AsteriskAmpersand <aravuegnitsuga@gmail.com>, Vuze <mhvuze@example.com>, Houmgaor <github@houmgaor.com>"
