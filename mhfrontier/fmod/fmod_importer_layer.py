@@ -58,11 +58,13 @@ def import_mesh(index, mesh, blender_materials):
     bpy.ops.object.select_all(action="DESELECT")
 
     # Geometry
-    blender_mesh, blender_object = create_mesh(
-        "FModMeshpart %03d" % (index,), mesh.vertices, mesh.faces
-    )
+    object_name = "FModMeshpart %03d" % (index,)
+    blender_mesh = create_mesh(object_name, mesh.vertices, mesh.faces)
+    blender_object = create_blender_object(object_name, blender_mesh)
+
     # Normals Handling
     set_normals(mesh.normals, blender_mesh)
+
     # UVs
     if mesh.uvs is not None:
         if bpy.app.version >= (2, 8):
@@ -77,6 +79,11 @@ def import_mesh(index, mesh, blender_materials):
 
     # Weights
     if mesh.weights is not None:
+        # Weapons with different parts such as lance mesh.bone_remap is None
+        if mesh.bone_remap is None:
+            # Different weapon part share the same vertex indexes,
+            # this is a monkey patching for this unhandled case
+            mesh.bone_remap = list(range(max(mesh.weights.keys()) + 1))
         set_weights(mesh.weights, mesh.bone_remap, blender_object)
     blender_mesh.update()
     mesh_objects.append(blender_object)
@@ -91,8 +98,8 @@ def create_mesh(name, vertices, faces):
     :type vertices: list[tuple[float, float, float]]
     :param list[tuple] faces: List of faces
 
-    :return: Mesh and associated object.
-    :rtype: tuple[bpy.types.Mesh, bpy.types.Object]
+    :return: Mesh for Blender.
+    :rtype: bpy.types.Mesh
     """
     blender_mesh = bpy.data.meshes.new(name)
     # Change scale and axes
@@ -102,6 +109,19 @@ def create_mesh(name, vertices, faces):
         transformed_vertices[i] = scaled[0], scaled[2], scaled[1]
     blender_mesh.from_pydata(transformed_vertices, [], faces)
     blender_mesh.update()
+    return blender_mesh
+
+
+def create_blender_object(name, blender_mesh):
+    """
+    Create a new blender object with a linked mesh.
+
+    :param str name: Name for the object
+    :param bpy.types.Mesh blender_mesh: Associated blender mesh.
+
+    :return: A new Blender object, with mesh set.
+    :rtype: bpy.types.Object
+    """
     blender_object = bpy.data.objects.new(name, blender_mesh)
     # Blender 2.8+
     if bpy.app.version >= (2, 8):
@@ -109,7 +129,7 @@ def create_mesh(name, vertices, faces):
     else:
         # Blender <2.8
         bpy.context.scene.objects.link(blender_object)
-    return blender_mesh, blender_object
+    return blender_object
 
 
 def create_texture_layer(
@@ -173,6 +193,13 @@ def set_normals(normals, mesh_part):
 
 
 def set_weights(weights, remap, mesh_obj):
+    """
+    Set weights to bones.
+
+    :param dict weights: Dict if (bone_id, group_number) to identify each bone.
+    :param list remap: Mapping of group ID for each bone_id.
+    :param bpy.types.Object mesh_obj: Blender object with vertex group set.
+    """
     for meshBoneIx, group in weights.items():
         group_ix = remap[meshBoneIx]
         group_id = "%03d" % group_ix if isinstance(group_ix, int) else str(group_ix)
@@ -210,7 +237,6 @@ def import_textures(materials, path, blender_materials):
     :param blender_materials: Dictionary of materials.
     :type blender_materials: dict[int, bpy.types.Material]
     """
-
     for ix, mat in blender_materials.items():
         # Setup
         mat.use_nodes = True
