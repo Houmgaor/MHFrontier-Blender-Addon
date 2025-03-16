@@ -1,6 +1,6 @@
 # Monster Hunter Frontier Blender Add-on
 
-A model importer for Monster Hunter Frontier FMOD/FSKL Files into Blender.
+A model importer for Monster Hunter Frontier FMOD/FSKL files into Blender.
 
 ## Install
 
@@ -76,8 +76,14 @@ the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blen
 
 ## In this fork (Houmgaor/)
 
+New features:
+
+- Weapons such as lance or models with different parts can now be loaded with a skeleton assigned.
 - Some models could not load with the original add-on.
 - Compatibility with Blender 2.8+.
+
+Changes:
+
 - Correctly scales and orients models.
 - Less memory usage, preventing crash.
 - Documentation.
