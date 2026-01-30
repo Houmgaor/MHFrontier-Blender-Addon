@@ -12,15 +12,16 @@ from .operators import (
     fmod_import,
     fskl_import,
     fskl_convert,
+    stage_import,
 )
 
 
 content = bytes("", "UTF-8")
 bl_info = {
     "name": "MHFrontier Model Importer",
-    "description": "Import Monster Hunter Frontier model files to Blender.",
+    "description": "Import Monster Hunter Frontier model and stage files to Blender.",
     "author": "AsteriskAmpersand (Code), Vuze (Structure), Houmgaor (Update)",
-    "version": (2, 2, 0),
+    "version": (2, 3, 0),
     "blender": (2, 80, 0),
     "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
     "doc_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon",
@@ -51,6 +52,16 @@ def register():
     else:
         bpy.types.INFO_MT_file_import.append(fskl_import.menu_func_import)
 
+    # Register stage/map import
+    bpy.utils.register_class(stage_import.ImportStage)
+    bpy.utils.register_class(stage_import.ImportStageDirect)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.append(stage_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.append(stage_import.menu_func_import_direct)
+    else:
+        bpy.types.INFO_MT_file_import.append(stage_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.append(stage_import.menu_func_import_direct)
+
     # Register the creation of the Blender Armature
     bpy.utils.register_class(fskl_convert.ConvertFSKL)
     bpy.types.VIEW3D_MT_object.append(fskl_convert.menu_func)
@@ -71,6 +82,16 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(fskl_import.menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.remove(fskl_import.menu_func_import)
+
+    # Stage/map import
+    bpy.utils.unregister_class(stage_import.ImportStage)
+    bpy.utils.unregister_class(stage_import.ImportStageDirect)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.remove(stage_import.menu_func_import)
+        bpy.types.TOPBAR_MT_file_import.remove(stage_import.menu_func_import_direct)
+    else:
+        bpy.types.INFO_MT_file_import.remove(stage_import.menu_func_import)
+        bpy.types.INFO_MT_file_import.remove(stage_import.menu_func_import_direct)
 
     # Unregister Armature creation
     bpy.utils.unregister_class(fskl_convert.ConvertFSKL)

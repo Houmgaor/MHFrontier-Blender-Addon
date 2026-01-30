@@ -19,12 +19,25 @@ def load_fmod_file(file_path):
     :param str file_path: FMOD file to read.
     :return tuple[list[FMesh], list[FMat]]: List of meshes and associated materials
     """
-
     with open(file_path, "rb") as modelFile:
-        frontier_file = fblock.FBlock()
-        frontier_file.marshall(filelike.FileLike(modelFile.read()))
-    print("FMOD file structure\n===================")
-    frontier_file.pretty_print()
+        return load_fmod_file_from_bytes(modelFile.read())
+
+
+def load_fmod_file_from_bytes(data, verbose=True):
+    """
+    Load a 3D model with materials from FMOD data bytes.
+
+    A single FMOD file usually contains multiple meshes.
+
+    :param bytes data: Raw FMOD file data.
+    :param bool verbose: Print structure info if True.
+    :return tuple[list[FMesh], list[FMat]]: List of meshes and associated materials
+    """
+    frontier_file = fblock.FBlock()
+    frontier_file.marshall(filelike.FileLike(data))
+    if verbose:
+        print("FMOD file structure\n===================")
+        frontier_file.pretty_print()
     for i, datum in enumerate(frontier_file.data[1:4]):
         if not isinstance(datum, fblock.FileBlock):
             raise TypeError(
