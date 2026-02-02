@@ -23,6 +23,7 @@ if _BLENDER_AVAILABLE:
     from .operators import (
         fmod_import,
         fskl_import,
+        fmot_import,
         fskl_convert,
         stage_import,
         fmod_export_op,
@@ -65,6 +66,13 @@ def register():
         bpy.types.TOPBAR_MT_file_import.append(fskl_import.menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(fskl_import.menu_func_import)
+
+    # Register the FMOT (Frontier Motion) file import
+    bpy.utils.register_class(fmot_import.ImportFMOT)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.append(fmot_import.menu_func_import)
+    else:
+        bpy.types.INFO_MT_file_import.append(fmot_import.menu_func_import)
 
     # Register stage/map import
     bpy.utils.register_class(stage_import.ImportStage)
@@ -110,6 +118,13 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(fskl_import.menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.remove(fskl_import.menu_func_import)
+
+    # Frontier Motion import
+    bpy.utils.unregister_class(fmot_import.ImportFMOT)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.remove(fmot_import.menu_func_import)
+    else:
+        bpy.types.INFO_MT_file_import.remove(fmot_import.menu_func_import)
 
     # Stage/map import
     bpy.utils.unregister_class(stage_import.ImportStage)

@@ -10,6 +10,7 @@ Frontier uses a different scale and axis orientation than Blender:
 - Axes: Frontier uses Y-up, Blender uses Z-up (requires Y/Z swap)
 """
 
+import math
 from typing import Tuple
 
 
@@ -142,3 +143,15 @@ def reverse_transform_uv(uv: Tuple[float, float]) -> Tuple[float, float]:
     :return: Frontier UV coordinates (u, 1-v).
     """
     return (uv[0], 1.0 - uv[1])
+
+
+# =============================================================================
+# Animation Configuration
+# =============================================================================
+
+#: Rotation scaling factor for motion files (converts int16 to radians)
+#: Motion values range from -32768 to 32767, mapping to -pi to pi
+ROTATION_SCALE: float = math.pi / 32768.0
+
+#: Frame rate for MHF animations (30 fps)
+MOTION_FRAMERATE: float = 30.0

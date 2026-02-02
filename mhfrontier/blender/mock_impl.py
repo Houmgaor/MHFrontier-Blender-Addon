@@ -16,6 +16,7 @@ from .api import (
     ImageLoader,
     SceneManager,
     MatrixFactory,
+    AnimationBuilder,
 )
 
 
@@ -402,3 +403,89 @@ class MockMatrixFactory(MatrixFactory):
 
     def from_values(self, values: List[List[float]]) -> MockMatrix:
         return MockMatrix(values=[list(row) for row in values])
+
+
+@dataclass
+class MockKeyframe:
+    """Mock keyframe data structure."""
+
+    frame: float
+    value: float
+    interpolation: str = "BEZIER"
+    handle_left: Optional[Tuple[float, float]] = None
+    handle_right: Optional[Tuple[float, float]] = None
+
+
+@dataclass
+class MockFCurve:
+    """Mock FCurve data structure."""
+
+    data_path: str
+    index: int = 0
+    keyframe_points: List[MockKeyframe] = field(default_factory=list)
+
+
+@dataclass
+class MockAction:
+    """Mock action data structure."""
+
+    name: str
+    fcurves: List[MockFCurve] = field(default_factory=list)
+    frame_start: int = 0
+    frame_end: int = 0
+
+
+class MockAnimationBuilder(AnimationBuilder):
+    """Mock animation builder for testing."""
+
+    def __init__(self):
+        self.created_actions: List[MockAction] = []
+        self.assigned_actions: Dict[str, MockAction] = {}  # obj_name -> action
+
+    def create_action(self, name: str) -> MockAction:
+        action = MockAction(name=name)
+        self.created_actions.append(action)
+        return action
+
+    def create_fcurve(
+        self,
+        action: MockAction,
+        data_path: str,
+        index: int = 0,
+    ) -> MockFCurve:
+        fcurve = MockFCurve(data_path=data_path, index=index)
+        action.fcurves.append(fcurve)
+        return fcurve
+
+    def add_keyframe(
+        self,
+        fcurve: MockFCurve,
+        frame: float,
+        value: float,
+        interpolation: str = "BEZIER",
+        handle_left: Optional[Tuple[float, float]] = None,
+        handle_right: Optional[Tuple[float, float]] = None,
+    ) -> MockKeyframe:
+        kf = MockKeyframe(
+            frame=frame,
+            value=value,
+            interpolation=interpolation,
+            handle_left=handle_left,
+            handle_right=handle_right,
+        )
+        fcurve.keyframe_points.append(kf)
+        return kf
+
+    def set_action_frame_range(
+        self,
+        action: MockAction,
+        frame_start: int,
+        frame_end: int,
+    ) -> None:
+        action.frame_start = frame_start
+        action.frame_end = frame_end
+
+    def assign_action_to_object(self, obj: Any, action: MockAction) -> None:
+        # Store by object name for testing
+        obj_name = getattr(obj, "name", str(obj))
+        self.assigned_actions[obj_name] = action

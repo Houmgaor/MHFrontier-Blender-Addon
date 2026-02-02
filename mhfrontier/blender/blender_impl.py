@@ -19,6 +19,7 @@ from .api import (
     ImageLoader,
     SceneManager,
     MatrixFactory,
+    AnimationBuilder,
 )
 
 
@@ -274,6 +275,64 @@ class BlenderMatrixFactory(MatrixFactory):
         return Matrix(values)
 
 
+class BlenderAnimationBuilder(AnimationBuilder):
+    """Concrete animation builder using Blender APIs."""
+
+    def create_action(self, name: str) -> bpy.types.Action:
+        return bpy.data.actions.new(name=name)
+
+    def create_fcurve(
+        self,
+        action: bpy.types.Action,
+        data_path: str,
+        index: int = 0,
+    ) -> bpy.types.FCurve:
+        return action.fcurves.new(data_path=data_path, index=index)
+
+    def add_keyframe(
+        self,
+        fcurve: bpy.types.FCurve,
+        frame: float,
+        value: float,
+        interpolation: str = "BEZIER",
+        handle_left: Tuple[float, float] = None,
+        handle_right: Tuple[float, float] = None,
+    ) -> bpy.types.Keyframe:
+        kf = fcurve.keyframe_points.insert(frame, value)
+        kf.interpolation = interpolation
+
+        if handle_left is not None:
+            kf.handle_left_type = "FREE"
+            kf.handle_left = handle_left
+
+        if handle_right is not None:
+            kf.handle_right_type = "FREE"
+            kf.handle_right = handle_right
+
+        return kf
+
+    def set_action_frame_range(
+        self,
+        action: bpy.types.Action,
+        frame_start: int,
+        frame_end: int,
+    ) -> None:
+        action.frame_start = frame_start
+        action.frame_end = frame_end
+        # Also set use_frame_range for Blender 3.0+
+        if hasattr(action, "use_frame_range"):
+            action.use_frame_range = True
+
+    def assign_action_to_object(
+        self,
+        obj: bpy.types.Object,
+        action: bpy.types.Action,
+    ) -> None:
+        if obj.animation_data is None:
+            obj.animation_data_create()
+        obj.animation_data.action = action
+
+
 # Singleton instances for convenience
 _mesh_builder: BlenderMeshBuilder | None = None
 _object_builder: BlenderObjectBuilder | None = None
@@ -281,6 +340,7 @@ _material_builder: BlenderMaterialBuilder | None = None
 _image_loader: BlenderImageLoader | None = None
 _scene_manager: BlenderSceneManager | None = None
 _matrix_factory: BlenderMatrixFactory | None = None
+_animation_builder: BlenderAnimationBuilder | None = None
 
 
 def get_mesh_builder() -> BlenderMeshBuilder:
@@ -329,3 +389,11 @@ def get_matrix_factory() -> BlenderMatrixFactory:
     if _matrix_factory is None:
         _matrix_factory = BlenderMatrixFactory()
     return _matrix_factory
+
+
+def get_animation_builder() -> BlenderAnimationBuilder:
+    """Get the singleton animation builder instance."""
+    global _animation_builder
+    if _animation_builder is None:
+        _animation_builder = BlenderAnimationBuilder()
+    return _animation_builder

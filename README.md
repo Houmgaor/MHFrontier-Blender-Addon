@@ -1,6 +1,6 @@
 # Monster Hunter Frontier Blender Add-on
 
-A model importer for Monster Hunter Frontier FMOD/FSKL files into Blender.
+A model importer for Monster Hunter Frontier FMOD/FSKL/MOT files into Blender.
 
 ## Install
 
@@ -25,6 +25,14 @@ Convert the skeleton to an armature, ``Object > Create Armature from FSKL Tree``
 ![Disufiroa with armature](https://github.com/user-attachments/assets/db92b3fe-f9d4-4d72-8ad8-6bf5747036ae)
 
 Your model is imported with the textures, and you can change its pose.
+
+### Animation Import
+
+To import animations, first create an armature as described above.
+Then with the armature selected, ``File > Import > MHF Motion (.mot)``.
+
+The animation will be imported as a Blender Action and automatically assigned to the armature.
+You can view the animation in the Timeline or Dope Sheet editors.
 
 ![Disufiroa rendered](https://github.com/user-attachments/assets/fe1c5bbb-baac-4b08-84df-63fbdb9a2e5e)
 
@@ -69,7 +77,8 @@ To known which file is which monster you can
 use [monster_ids.md](https://github.com/Houmgaor/ReFrontier/blob/c67b02d1031e380d9f217d17eb89ca3d075206ee/monster_ids.md)
 as a reference.
 To decompress data use [ReFrontier](https://github.com/Houmgaor/ReFrontier).
-You want .fmod (3D model) and .fskl (skeleton) files.
+You want .fmod (3D model), .fskl (skeleton), and .mot (animation) files.
+Animation files can be found in "[your MHFrontier folder]/dat/motion".
 
 For the next steps, you can follow
 the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blender-Importing-(Frontier-Z)).
@@ -78,6 +87,7 @@ the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blen
 
 New features:
 
+- Animation/motion file (.mot) import support.
 - Weapons such as lance or models with different parts can now be loaded with a skeleton assigned.
 - Some models could not load with the original add-on.
 - Compatibility with Blender 2.8+.

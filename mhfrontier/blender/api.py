@@ -464,3 +464,84 @@ class MatrixFactory(ABC):
         :return: Matrix object.
         """
         ...
+
+
+class AnimationBuilder(ABC):
+    """Abstract interface for animation/action creation."""
+
+    @abstractmethod
+    def create_action(self, name: str) -> Any:
+        """
+        Create a new animation action.
+
+        :param name: Name for the action.
+        :return: Created action object.
+        """
+        ...
+
+    @abstractmethod
+    def create_fcurve(
+        self,
+        action: Any,
+        data_path: str,
+        index: int = 0,
+    ) -> Any:
+        """
+        Create an FCurve (animation curve) in an action.
+
+        :param action: Action to add the curve to.
+        :param data_path: Data path for the property being animated
+                         (e.g., 'pose.bones["Bone.001"].location').
+        :param index: Array index for the property (0=X, 1=Y, 2=Z).
+        :return: Created FCurve object.
+        """
+        ...
+
+    @abstractmethod
+    def add_keyframe(
+        self,
+        fcurve: Any,
+        frame: float,
+        value: float,
+        interpolation: str = "BEZIER",
+        handle_left: Optional[Tuple[float, float]] = None,
+        handle_right: Optional[Tuple[float, float]] = None,
+    ) -> Any:
+        """
+        Add a keyframe to an FCurve.
+
+        :param fcurve: FCurve to add keyframe to.
+        :param frame: Frame number for the keyframe.
+        :param value: Value at this keyframe.
+        :param interpolation: Interpolation type ('BEZIER', 'LINEAR', 'CONSTANT').
+        :param handle_left: Left Bezier handle position (frame, value) or None.
+        :param handle_right: Right Bezier handle position (frame, value) or None.
+        :return: Created keyframe point.
+        """
+        ...
+
+    @abstractmethod
+    def set_action_frame_range(
+        self,
+        action: Any,
+        frame_start: int,
+        frame_end: int,
+    ) -> None:
+        """
+        Set the frame range for an action.
+
+        :param action: Action to modify.
+        :param frame_start: First frame of the action.
+        :param frame_end: Last frame of the action.
+        """
+        ...
+
+    @abstractmethod
+    def assign_action_to_object(self, obj: Any, action: Any) -> None:
+        """
+        Assign an action to an object's animation data.
+
+        :param obj: Object (typically an armature) to assign action to.
+        :param action: Action to assign.
+        """
+        ...
