@@ -9,6 +9,7 @@ Created on Mon Dec 30 01:17:01 2019
 import bpy
 from mathutils import Vector, Matrix
 
+from ..config import AXIS_REMAP, IMPORT_SCALE
 from ..fmod import fskl
 
 
@@ -38,16 +39,15 @@ def deserialize_pose_vector(vec4):
     """
     Pose vector to matrix with units conversions.
 
-    The output scale is 100th of the input and axes are switched.
+    Applies IMPORT_SCALE and AXIS_REMAP from config to convert
+    Frontier coordinates to Blender coordinate system.
 
     :return mathutils.Matrix: transform matrix
     """
-
     transform = Matrix.Identity(4)
     for i in range(4):
-        # Axes permutations
-        j = [0, 2, 1, 3][i]
-        transform[i][3] = vec4[j] / 100
+        j = AXIS_REMAP[i]
+        transform[i][3] = vec4[j] * IMPORT_SCALE
     return transform
 
 

@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 import bpy
 import bmesh
 
+from ..config import transform_vertex
+
 if TYPE_CHECKING:
     from .fmesh import FMesh
 
@@ -78,11 +80,8 @@ def create_mesh(
     :return: Created Blender mesh.
     """
     blender_mesh = bpy.data.meshes.new(name)
-    # Change scale (1/100) and swap Y/Z axes for Blender coordinate system
-    transformed_vertices: List[Tuple[float, float, float]] = [tuple() for _ in vertices]  # type: ignore
-    for i, vertex in enumerate(vertices):
-        scaled = tuple(v / 100 for v in vertex)
-        transformed_vertices[i] = (scaled[0], scaled[2], scaled[1])
+    # Transform vertices from Frontier to Blender coordinate system
+    transformed_vertices = [transform_vertex(v) for v in vertices]
     blender_mesh.from_pydata(transformed_vertices, [], faces)
     blender_mesh.update()
     return blender_mesh
