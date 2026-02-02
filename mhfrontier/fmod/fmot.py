@@ -172,17 +172,11 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     """
     Parse animation data starting at given offset.
 
-    The bone blocks in MHF animation files use channel masks (not bone IDs) in
-    the lower 16 bits. The actual skeleton bone index is determined by the
-    sequential order of bone blocks:
-    - First bone block = skeleton bone 0 (root)
-    - Second bone block = skeleton bone 1
-    - etc.
-
-    Channel mask values:
-    - 0x038 (56) = position channels (POS_X|POS_Y|POS_Z)
-    - 0x1C0 (448) = rotation channels (ROT_X|ROT_Y|ROT_Z)
-    - 0x1F8 (504) = all channels
+    Animation structure analysis:
+    - Bone blocks use 0x80XXXXXX format where lower 16 bits indicate channel mask
+    - Channel masks: 0x038=position, 0x1C0=rotation, 0x1F8=all
+    - Animation targets bones sequentially starting from bone 3
+      (bones 0-2 are typically root/control bones without vertex weights)
 
     :param data: File data.
     :param start_offset: Offset to animation header.
@@ -201,8 +195,11 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
 
     motion = MotionData()
     max_frame = 0
-    current_bone_index = 0  # Sequential bone index (maps to skeleton)
-    bone_block_count = 0  # Track how many bone blocks we've seen
+
+    # Bone mapping: animation bone blocks map to skeleton bones starting at 3
+    # (bones 0-2 are root/control bones, bones 3+ have vertex weights)
+    bone_block_count = 0
+    current_bone_id = 3  # Start from first weighted bone
 
     # Parse blocks within this animation section
     pos = start_offset + 16
@@ -224,13 +221,13 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
             )
 
             if channel_anim.keyframes:
-                # Add to current bone (using sequential index)
-                if current_bone_index not in motion.bone_animations:
-                    motion.bone_animations[current_bone_index] = BoneAnimation(
-                        bone_id=current_bone_index
+                # Add to current bone
+                if current_bone_id not in motion.bone_animations:
+                    motion.bone_animations[current_bone_id] = BoneAnimation(
+                        bone_id=current_bone_id
                     )
 
-                motion.bone_animations[current_bone_index].channels[channel_type] = channel_anim
+                motion.bone_animations[current_bone_id].channels[channel_type] = channel_anim
 
                 # Track max frame
                 for kf in channel_anim.keyframes:
@@ -242,13 +239,9 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
 
         # Check for bone group block (0x80XXXXXX but not keyframe)
         if (block_type & 0x80000000) != 0:
-            # The lower 16 bits contain a channel mask (not a bone ID)
-            # Bone index is determined sequentially
-            channel_mask = block_type & 0xFFFF
-
-            # Increment bone index for each new bone block
-            # (First block at index 0 is root, subsequent blocks are children)
-            current_bone_index = bone_block_count
+            # Map animation bone blocks to skeleton bones sequentially
+            # First block -> bone 3, second -> bone 4, etc.
+            current_bone_id = 3 + bone_block_count
             bone_block_count += 1
 
             pos += 8

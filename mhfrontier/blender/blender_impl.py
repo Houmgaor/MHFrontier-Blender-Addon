@@ -86,6 +86,9 @@ class BlenderMeshBuilder(MeshBuilder):
     def update_mesh(self, mesh: bpy.types.Mesh) -> None:
         mesh.update()
 
+    def get_polygon_count(self, mesh: bpy.types.Mesh) -> int:
+        return len(mesh.polygons)
+
 
 class BlenderObjectBuilder(ObjectBuilder):
     """Concrete object builder using Blender APIs."""

@@ -8,6 +8,7 @@ Converts parsed mesh data to Blender mesh objects.
 from typing import Any, Dict, List, Optional
 
 from ..blender.builders import Builders, get_builders
+from ..config import IMPORT_SCALE, AXIS_REMAP_3D
 
 
 def import_mesh(
@@ -68,6 +69,8 @@ def create_mesh(
     """
     Create a new mesh with vertices and faces.
 
+    Applies coordinate transformation (scale and axis remap) to vertices.
+
     :param name: Name for the mesh.
     :param vertices: List of vertex positions.
     :param faces: List of face indices.
@@ -77,7 +80,17 @@ def create_mesh(
     if builders is None:
         builders = get_builders()
 
-    return builders.mesh.create_mesh(name, vertices, faces)
+    # Transform vertices: scale and axis remap (Y/Z swap for Blender Z-up)
+    transformed_vertices = [
+        (
+            v[AXIS_REMAP_3D[0]] * IMPORT_SCALE,
+            v[AXIS_REMAP_3D[1]] * IMPORT_SCALE,
+            v[AXIS_REMAP_3D[2]] * IMPORT_SCALE,
+        )
+        for v in vertices
+    ]
+
+    return builders.mesh.create_mesh(name, transformed_vertices, faces)
 
 
 def create_blender_object(
@@ -131,8 +144,13 @@ def create_texture_layer(
 
     # Build face_materials list
     face_materials = []
-    for face_idx in range(len(blender_mesh.faces)):
-        mat_id = material_map.get(face_idx, material_list[0] if material_list else 0)
+    polygon_count = builders.mesh.get_polygon_count(blender_mesh)
+    for face_idx in range(polygon_count):
+        # material_map is a list of material IDs per face
+        if material_map is not None and face_idx < len(material_map):
+            mat_id = material_map[face_idx]
+        else:
+            mat_id = material_list[0] if material_list else 0
         face_materials.append(mat_local_index.get(mat_id, 0))
 
     # Set UVs and face materials using the API
@@ -147,6 +165,8 @@ def set_normals(
     """
     Set custom split normals on the mesh.
 
+    Applies axis remapping (Y/Z swap) to normals.
+
     :param normals: List of normal vectors.
     :param blender_mesh: Blender mesh to modify.
     :param builders: Optional builders (defaults to Blender implementation).
@@ -157,7 +177,13 @@ def set_normals(
     if not normals:
         return
 
-    builders.mesh.set_normals(blender_mesh, normals)
+    # Transform normals: axis remap only (no scaling for unit vectors)
+    transformed_normals = [
+        [n[AXIS_REMAP_3D[0]], n[AXIS_REMAP_3D[1]], n[AXIS_REMAP_3D[2]]]
+        for n in normals
+    ]
+
+    builders.mesh.set_normals(blender_mesh, transformed_normals)
 
 
 def set_weights(

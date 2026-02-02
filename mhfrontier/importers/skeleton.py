@@ -7,7 +7,7 @@ Converts parsed skeleton data to Blender empty object hierarchies.
 
 from typing import Any, Dict, Optional
 
-from ..config import AXIS_REMAP, IMPORT_SCALE
+from ..config import IMPORT_SCALE, AXIS_REMAP
 from ..blender.builders import Builders, get_builders
 from ..fmod import fskl
 
@@ -46,8 +46,8 @@ def deserialize_pose_vector(
     """
     Pose vector to matrix with units conversions.
 
-    Applies IMPORT_SCALE and AXIS_REMAP from config to convert
-    Frontier coordinates to Blender coordinate system.
+    Applies IMPORT_SCALE and AXIS_REMAP to convert Frontier coordinates
+    to Blender coordinate system (Y-up to Z-up conversion).
 
     :param vec4: 4-element pose vector.
     :param builders: Optional builders (defaults to Blender implementation).

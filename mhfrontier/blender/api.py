@@ -87,6 +87,16 @@ class MeshBuilder(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_polygon_count(self, mesh: Any) -> int:
+        """
+        Get the number of polygons (faces) in a mesh.
+
+        :param mesh: Mesh to query.
+        :return: Number of polygons.
+        """
+        ...
+
 
 class ObjectBuilder(ABC):
     """Abstract interface for object creation and scene management."""

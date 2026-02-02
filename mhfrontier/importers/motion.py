@@ -16,22 +16,33 @@ from ..fmod.fmot import ChannelType, MotionData
 _logger = get_logger("motion_importer")
 
 
-def _channel_to_property_info(channel_type: int) -> Tuple[Optional[str], int, str]:
+def _channel_to_property_info(channel_type: int, bone_id: int = 0) -> Tuple[Optional[str], int, str]:
     """
     Map channel type to Blender property info.
 
+    Note: Position animation is only applied to bone 0 (root) because
+    MHF animation position values appear to be absolute/world positions,
+    not local bone offsets. Applying them to child bones causes distortion.
+
     :param channel_type: Motion file channel type.
+    :param bone_id: Bone ID (used to filter position animation).
     :return: Tuple of (property_name, array_index, transform_type).
              transform_type is 'position', 'rotation', or 'scale'.
     """
-    # Position channels - need axis remap
+    # Position channels - only apply to root bone (bone 0)
+    # Other bones' position data appears to be IK targets or world positions
     if channel_type == ChannelType.POSITION_X:
-        # Frontier X -> Blender X (index 0)
+        if bone_id != 0:
+            return None, 0, "position"  # Skip non-root position
         return "location", 0, "position"
     elif channel_type == ChannelType.POSITION_Y:
+        if bone_id != 0:
+            return None, 0, "position"
         # Frontier Y -> Blender Z (index 2) due to Y-up to Z-up
         return "location", 2, "position"
     elif channel_type == ChannelType.POSITION_Z:
+        if bone_id != 0:
+            return None, 0, "position"
         # Frontier Z -> Blender Y (index 1) due to Y-up to Z-up
         return "location", 1, "position"
 
@@ -153,6 +164,29 @@ def _calculate_bezier_handles(
     return handle_left, handle_right
 
 
+def _set_bone_rotation_mode(armature: Any, bone_name: str, mode: str = "XYZ") -> None:
+    """
+    Set the rotation mode for a pose bone.
+
+    Blender bones default to QUATERNION rotation, but MHF animations use
+    Euler rotations. This must be set before animation data is applied.
+
+    :param armature: Blender armature object.
+    :param bone_name: Name of the bone.
+    :param mode: Rotation mode ('XYZ', 'QUATERNION', etc.).
+    """
+    if armature is None:
+        return
+    pose = getattr(armature, "pose", None)
+    if pose is None:
+        return
+    bones = getattr(pose, "bones", None)
+    if bones is None:
+        return
+    if bone_name in bones:
+        bones[bone_name].rotation_mode = mode
+
+
 def import_motion(
     filepath: str,
     armature: Any,
@@ -192,13 +226,15 @@ def import_motion(
                 if bone_name not in bones:
                     _logger.debug(f"Bone {bone_name} not in armature, skipping")
                     continue
+                # Set rotation mode to Euler for animation compatibility
+                _set_bone_rotation_mode(armature, bone_name, "XYZ")
 
         # Process each channel
         for channel_type, channel_anim in bone_anim.channels.items():
-            prop_name, index, transform_type = _channel_to_property_info(channel_type)
+            prop_name, index, transform_type = _channel_to_property_info(channel_type, bone_id)
 
             if prop_name is None:
-                _logger.debug(f"Unknown channel type {channel_type:#x}, skipping")
+                # Skip this channel (e.g., position on non-root bones)
                 continue
 
             # Build data path for pose bone
@@ -283,8 +319,11 @@ def import_motion_from_bytes(
     for bone_id, bone_anim in motion_data.bone_animations.items():
         bone_name = f"Bone.{bone_id:03d}"
 
+        # Set rotation mode to Euler for animation compatibility
+        _set_bone_rotation_mode(armature, bone_name, "XYZ")
+
         for channel_type, channel_anim in bone_anim.channels.items():
-            prop_name, index, transform_type = _channel_to_property_info(channel_type)
+            prop_name, index, transform_type = _channel_to_property_info(channel_type, bone_id)
 
             if prop_name is None:
                 continue

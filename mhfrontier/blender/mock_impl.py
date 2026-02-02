@@ -176,6 +176,9 @@ class MockMeshBuilder(MeshBuilder):
     def update_mesh(self, mesh: MockMesh) -> None:
         mesh.updated = True
 
+    def get_polygon_count(self, mesh: MockMesh) -> int:
+        return len(mesh.faces)
+
 
 class MockObjectBuilder(ObjectBuilder):
     """Mock object builder for testing."""

@@ -47,17 +47,24 @@ class TestImportMesh(unittest.TestCase):
         """Set up test fixtures."""
         self.builders = get_mock_builders()
 
-        # Simple triangle mesh
+        # Simple triangle mesh (in Frontier coordinates)
         self.simple_vertices = [
             (0.0, 0.0, 0.0),
             (100.0, 0.0, 0.0),
             (50.0, 100.0, 0.0),
         ]
         self.simple_faces = [[0, 1, 2]]
+        # Normals in Frontier coords
         self.simple_normals = [
             [0.0, 0.0, 1.0],
             [0.0, 0.0, 1.0],
             [0.0, 0.0, 1.0],
+        ]
+        # Expected normals after axis remap (Y/Z swap): [x, z, y]
+        self.expected_normals = [
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
         ]
 
     def test_import_simple_mesh(self):
@@ -94,8 +101,8 @@ class TestImportMesh(unittest.TestCase):
         # Verify faces
         self.assertEqual(created_mesh.faces, [[0, 1, 2]])
 
-        # Verify normals were set
-        self.assertEqual(created_mesh.normals, self.simple_normals)
+        # Verify normals were set (with axis remap applied)
+        self.assertEqual(created_mesh.normals, self.expected_normals)
 
     def test_import_mesh_with_uvs(self):
         """Test importing a mesh with UV coordinates."""
