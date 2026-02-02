@@ -9,17 +9,10 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional
 
 from ..stage.jkr_decompress import decompress_jkr
-from ..blender.api import SceneManager
+from ..blender.builders import Builders, get_builders
 from ..logging_config import get_logger
 
 _logger = get_logger("stage")
-
-
-def _get_default_scene_manager() -> SceneManager:
-    """Get default Blender scene manager (lazy import)."""
-    from ..blender.blender_impl import get_scene_manager
-
-    return get_scene_manager()
 
 
 def import_unpacked_stage(
@@ -28,7 +21,7 @@ def import_unpacked_stage(
     create_collection: bool,
     import_fmod_file_func: Callable,
     import_jkr_file_func: Callable,
-    scene_manager: Optional[SceneManager] = None,
+    builders: Optional[Builders] = None,
 ) -> List[Any]:
     """
     Import an unpacked stage directory.
@@ -40,18 +33,18 @@ def import_unpacked_stage(
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_file_func: Function to import FMOD files.
     :param import_jkr_file_func: Function to import JKR files.
-    :param scene_manager: Optional scene manager (defaults to Blender implementation).
+    :param builders: Optional builders (defaults to Blender implementation).
     :return: List of imported Blender objects.
     """
-    if scene_manager is None:
-        scene_manager = _get_default_scene_manager()
+    if builders is None:
+        builders = get_builders()
 
     imported_objects: List[Any] = []
     collection = None
 
     if create_collection:
-        collection = scene_manager.create_collection(stage_dir.name)
-        scene_manager.link_collection_to_scene(collection)
+        collection = builders.scene.create_collection(stage_dir.name)
+        builders.scene.link_collection_to_scene(collection)
 
     # Find all relevant files
     fmod_files = list(stage_dir.glob("*.fmod"))

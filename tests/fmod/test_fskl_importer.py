@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Unit tests for fskl_importer_layer using mock builders."""
+"""Unit tests for skeleton importer using mock builders."""
 
 import unittest
 from dataclasses import dataclass, field
@@ -10,7 +10,8 @@ from mhfrontier.blender.mock_impl import (
     MockMatrixFactory,
     MockMatrix,
 )
-from mhfrontier.fmod import fskl_importer_layer
+from mhfrontier.blender.builders import get_mock_builders
+from mhfrontier.importers import skeleton as skeleton_importer
 
 
 @dataclass
@@ -27,11 +28,11 @@ class TestDeserializePoseVector(unittest.TestCase):
 
     def test_identity_position(self):
         """Test deserializing a zero position vector."""
-        matrix_factory = MockMatrixFactory()
+        builders = get_mock_builders()
 
-        result = fskl_importer_layer.deserialize_pose_vector(
+        result = skeleton_importer.deserialize_pose_vector(
             (0.0, 0.0, 0.0, 1.0),
-            matrix_factory,
+            builders,
         )
 
         # Should be close to identity with position at origin
@@ -39,11 +40,11 @@ class TestDeserializePoseVector(unittest.TestCase):
 
     def test_non_zero_position(self):
         """Test deserializing a non-zero position vector."""
-        matrix_factory = MockMatrixFactory()
+        builders = get_mock_builders()
 
-        result = fskl_importer_layer.deserialize_pose_vector(
+        result = skeleton_importer.deserialize_pose_vector(
             (100.0, 200.0, 300.0, 1.0),
-            matrix_factory,
+            builders,
         )
 
         # The position should be scaled and axis-remapped
@@ -57,22 +58,20 @@ class TestImportBone(unittest.TestCase):
 
     def test_import_single_bone(self):
         """Test importing a single bone with no parent."""
-        object_builder = MockObjectBuilder()
-        matrix_factory = MockMatrixFactory()
+        builders = get_mock_builders()
 
-        root_obj = object_builder.create_object("FSKL Tree", None)
+        root_obj = builders.object.create_object("FSKL Tree", None)
         skeleton: Dict[str, any] = {"Root": root_obj}
         skeleton_structure = {}
 
         bone = MockFBone(nodeID=0, parentID=-1)
         skeleton_structure[0] = bone
 
-        fskl_importer_layer.import_bone(
+        skeleton_importer.import_bone(
             bone,
             skeleton,
             skeleton_structure,
-            object_builder,
-            matrix_factory,
+            builders,
         )
 
         # Verify bone object was created
@@ -93,10 +92,9 @@ class TestImportBone(unittest.TestCase):
 
     def test_import_bone_with_parent(self):
         """Test importing a bone with a parent bone."""
-        object_builder = MockObjectBuilder()
-        matrix_factory = MockMatrixFactory()
+        builders = get_mock_builders()
 
-        root_obj = object_builder.create_object("FSKL Tree", None)
+        root_obj = builders.object.create_object("FSKL Tree", None)
         skeleton: Dict[str, any] = {"Root": root_obj}
 
         parent_bone = MockFBone(nodeID=0, parentID=-1)
@@ -108,12 +106,11 @@ class TestImportBone(unittest.TestCase):
         }
 
         # Import child first - should recursively import parent
-        fskl_importer_layer.import_bone(
+        skeleton_importer.import_bone(
             child_bone,
             skeleton,
             skeleton_structure,
-            object_builder,
-            matrix_factory,
+            builders,
         )
 
         # Both bones should be in skeleton
@@ -127,28 +124,26 @@ class TestImportBone(unittest.TestCase):
 
     def test_skip_existing_bone(self):
         """Test that existing bones are not reimported."""
-        object_builder = MockObjectBuilder()
-        matrix_factory = MockMatrixFactory()
+        builders = get_mock_builders()
 
-        root_obj = object_builder.create_object("FSKL Tree", None)
-        existing_bone_obj = object_builder.create_object("Bone.000", None)
+        root_obj = builders.object.create_object("FSKL Tree", None)
+        existing_bone_obj = builders.object.create_object("Bone.000", None)
         skeleton = {"Root": root_obj, "Bone.000": existing_bone_obj}
 
         bone = MockFBone(nodeID=0, parentID=-1)
         skeleton_structure = {0: bone}
 
-        initial_count = len(object_builder.created_objects)
+        initial_count = len(builders.object.created_objects)
 
-        fskl_importer_layer.import_bone(
+        skeleton_importer.import_bone(
             bone,
             skeleton,
             skeleton_structure,
-            object_builder,
-            matrix_factory,
+            builders,
         )
 
         # No new objects should be created
-        self.assertEqual(len(object_builder.created_objects), initial_count)
+        self.assertEqual(len(builders.object.created_objects), initial_count)
 
 
 class TestImportSkeleton(unittest.TestCase):

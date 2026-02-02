@@ -11,7 +11,7 @@ from pathlib import Path
 import bpy
 import bpy_extras
 
-from ..fmod import stage_importer_layer, fmod_importer_layer
+from ..importers import import_stage, import_fmod_file, import_jkr_file, clear_scene
 from ..logging_config import get_logger
 
 _logger = get_logger("operators")
@@ -87,7 +87,7 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 return {"CANCELLED"}
 
         try:
-            imported_objects = stage_importer_layer.import_stage(
+            imported_objects = import_stage(
                 str(stage_path),
                 import_textures=self.import_textures,
                 clear_scene=self.clear_scene,
@@ -167,7 +167,7 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         bpy.ops.object.select_all(action="DESELECT")
 
         if self.clear_scene:
-            fmod_importer_layer.clear_scene()
+            clear_scene()
 
         directory = Path(self.directory)
         total_objects = 0
@@ -175,22 +175,22 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Create a collection for all imports
         collection = None
         if self.create_collection:
-            from ..blender.blender_impl import get_scene_manager
+            from ..blender import get_builders
 
-            scene_manager = get_scene_manager()
-            collection = scene_manager.create_collection(directory.name)
-            scene_manager.link_collection_to_scene(collection)
+            builders = get_builders()
+            collection = builders.scene.create_collection(directory.name)
+            builders.scene.link_collection_to_scene(collection)
 
         for file_elem in self.files:
             filepath = directory / file_elem.name
 
             try:
                 if filepath.suffix.lower() == ".fmod":
-                    objects = stage_importer_layer.import_fmod_file(
+                    objects = import_fmod_file(
                         filepath, self.import_textures, collection
                     )
                 elif filepath.suffix.lower() == ".jkr":
-                    objects = stage_importer_layer.import_jkr_file(
+                    objects = import_jkr_file(
                         filepath, self.import_textures, collection
                     )
                 else:

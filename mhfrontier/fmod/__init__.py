@@ -2,14 +2,14 @@
 """
 FMOD/FSKL/FMOT file format module for Monster Hunter Frontier.
 
-This package provides:
+This package provides format parsing for:
 - FMOD model loading (fmod.py) - 3D meshes with materials
 - FSKL skeleton loading (fskl.py) - bone hierarchies
 - FMOT motion loading (fmot.py) - animation data
 - Block parsing (fblock.py) - recursive file structure parsing
 - Data classes (fmesh.py, fmat.py, fbone.py) - extracted geometry/material data
 
-For Blender import, use the importer layer modules which handle
+For Blender import, use the importers package which handles
 coordinate transforms and Blender object creation.
 """
 

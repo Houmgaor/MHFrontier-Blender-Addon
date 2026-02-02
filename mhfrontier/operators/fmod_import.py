@@ -9,7 +9,7 @@ Created on Wed Mar  6 14:09:29 2019
 import bpy
 import bpy_extras
 
-from ..fmod import fmod_importer_layer
+from ..importers import import_model, clear_scene
 from ..logging_config import get_logger
 
 _logger = get_logger("operators")
@@ -48,8 +48,8 @@ class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         bpy.ops.object.select_all(action="DESELECT")
 
         if self.clear_scene:
-            fmod_importer_layer.clear_scene()
-        fmod_importer_layer.import_model(self.properties.filepath, self.import_textures)
+            clear_scene()
+        import_model(self.properties.filepath, self.import_textures)
         return {"FINISHED"}
 
 

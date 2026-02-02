@@ -12,7 +12,8 @@ from mhfrontier.blender.mock_impl import (
     MockMesh,
     MockObject,
 )
-from mhfrontier.fmod import mesh_importer
+from mhfrontier.blender.builders import get_mock_builders
+from mhfrontier.importers import mesh as mesh_importer
 
 
 class MockFMesh:
@@ -44,8 +45,7 @@ class TestImportMesh(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.mesh_builder = MockMeshBuilder()
-        self.object_builder = MockObjectBuilder()
+        self.builders = get_mock_builders()
 
         # Simple triangle mesh
         self.simple_vertices = [
@@ -75,19 +75,18 @@ class TestImportMesh(unittest.TestCase):
             index=0,
             mesh=mock_mesh,
             blender_materials=blender_materials,
-            mesh_builder=self.mesh_builder,
-            object_builder=self.object_builder,
+            builders=self.builders,
         )
 
         # Verify object was created
-        self.assertEqual(len(self.object_builder.created_objects), 1)
-        self.assertEqual(result.name, "FModMeshpart 000")
+        self.assertEqual(len(self.builders.object.created_objects), 1)
+        self.assertEqual(result.name, "FMesh_000")
         self.assertTrue(result.linked_to_scene)
 
         # Verify mesh was created
-        self.assertEqual(len(self.mesh_builder.created_meshes), 1)
-        created_mesh = self.mesh_builder.created_meshes[0]
-        self.assertEqual(created_mesh.name, "FModMeshpart 000")
+        self.assertEqual(len(self.builders.mesh.created_meshes), 1)
+        created_mesh = self.builders.mesh.created_meshes[0]
+        self.assertEqual(created_mesh.name, "FMesh_000")
 
         # Verify vertices were transformed (scaled by IMPORT_SCALE and remapped)
         self.assertEqual(len(created_mesh.vertices), 3)
@@ -111,7 +110,7 @@ class TestImportMesh(unittest.TestCase):
             normals=self.simple_normals,
             uvs=uvs,
             material_list=[0],
-            material_map=[0],
+            material_map={0: 0},
         )
 
         mock_material = MockMaterial(name="TestMaterial")
@@ -121,12 +120,11 @@ class TestImportMesh(unittest.TestCase):
             index=1,
             mesh=mock_mesh,
             blender_materials=blender_materials,
-            mesh_builder=self.mesh_builder,
-            object_builder=self.object_builder,
+            builders=self.builders,
         )
 
         # Verify UV layer was created
-        created_mesh = self.mesh_builder.created_meshes[0]
+        created_mesh = self.builders.mesh.created_meshes[0]
         self.assertIn("UV0", created_mesh.uv_layers)
 
         # Verify UVs were set
@@ -158,8 +156,7 @@ class TestImportMesh(unittest.TestCase):
             index=2,
             mesh=mock_mesh,
             blender_materials=blender_materials,
-            mesh_builder=self.mesh_builder,
-            object_builder=self.object_builder,
+            builders=self.builders,
         )
 
         # Verify vertex groups were created
@@ -198,8 +195,7 @@ class TestImportMesh(unittest.TestCase):
             index=0,
             mesh=mock_mesh,
             blender_materials=blender_materials,
-            mesh_builder=self.mesh_builder,
-            object_builder=self.object_builder,
+            builders=self.builders,
         )
 
         # Verify it worked - bone_remap should be auto-generated as [0, 1, 2]
@@ -221,11 +217,10 @@ class TestImportMesh(unittest.TestCase):
             index=0,
             mesh=mock_mesh,
             blender_materials=blender_materials,
-            mesh_builder=self.mesh_builder,
-            object_builder=self.object_builder,
+            builders=self.builders,
         )
 
-        self.assertEqual(self.object_builder.deselect_calls, 1)
+        self.assertEqual(self.builders.object.deselect_calls, 1)
 
 
 class TestCreateMesh(unittest.TestCase):
@@ -233,7 +228,7 @@ class TestCreateMesh(unittest.TestCase):
 
     def test_create_mesh_transforms_vertices(self):
         """Test that vertices are transformed from Frontier to Blender coordinates."""
-        mesh_builder = MockMeshBuilder()
+        builders = get_mock_builders()
 
         # Input vertices in Frontier coordinates
         vertices = [
@@ -246,11 +241,11 @@ class TestCreateMesh(unittest.TestCase):
             name="TestMesh",
             vertices=vertices,
             faces=faces,
-            mesh_builder=mesh_builder,
+            builders=builders,
         )
 
         # Verify mesh was created
-        self.assertEqual(len(mesh_builder.created_meshes), 1)
+        self.assertEqual(len(builders.mesh.created_meshes), 1)
         self.assertEqual(result.name, "TestMesh")
 
         # Vertices should be transformed (IMPORT_SCALE=0.01, AXIS_REMAP=[0,2,1,3])
@@ -264,13 +259,13 @@ class TestCreateBlenderObject(unittest.TestCase):
 
     def test_creates_and_links_object(self):
         """Test that object is created and linked to scene."""
-        object_builder = MockObjectBuilder()
+        builders = get_mock_builders()
         mock_mesh = MockMesh(name="TestMesh")
 
         result = mesh_importer.create_blender_object(
             name="TestObject",
-            blender_mesh=mock_mesh,
-            object_builder=object_builder,
+            mesh=mock_mesh,
+            builders=builders,
         )
 
         self.assertEqual(result.name, "TestObject")
@@ -283,7 +278,7 @@ class TestSetWeights(unittest.TestCase):
 
     def test_set_weights_with_remap(self):
         """Test setting weights with bone remapping."""
-        object_builder = MockObjectBuilder()
+        builders = get_mock_builders()
         obj = MockObject(name="TestObject")
 
         weights = {
@@ -292,7 +287,7 @@ class TestSetWeights(unittest.TestCase):
         }
         remap = [10, 20]  # Local bone 0 -> skeleton bone 10, etc.
 
-        mesh_importer.set_weights(weights, remap, obj, object_builder)
+        mesh_importer.set_weights(weights, remap, obj, builders)
 
         # Verify vertex groups were created with remapped names
         self.assertIn("Bone.010", obj.vertex_groups)
@@ -309,25 +304,26 @@ class TestCreateTextureLayer(unittest.TestCase):
 
     def test_adds_materials_and_uvs(self):
         """Test that materials are added and UVs are set."""
-        mesh_builder = MockMeshBuilder()
+        builders = get_mock_builders()
         mesh = MockMesh(name="TestMesh")
         mesh.uv_layers["UV0"] = True  # Simulate UV layer already created
+        mesh.faces = [[0, 1, 2], [1, 2, 3]]  # Set up faces for the mesh
 
         material_0 = MockMaterial(name="Material0")
         material_1 = MockMaterial(name="Material1")
         blender_materials = {0: material_0, 1: material_1}
 
-        uvs = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0]]
+        uvs = [[0.0, 0.0], [1.0, 0.0], [0.5, 1.0], [0.5, 0.5]]
         material_list = [0, 1]
-        face_materials = [0, 1]
+        face_materials = {0: 0, 1: 1}  # Face 0 uses mat 0, face 1 uses mat 1
 
         mesh_importer.create_texture_layer(
             blender_mesh=mesh,
-            uv=uvs,
+            uvs=uvs,
             material_list=material_list,
-            face_materials=face_materials,
+            material_map=face_materials,
             blender_materials=blender_materials,
-            mesh_builder=mesh_builder,
+            builders=builders,
         )
 
         # Verify materials were added
@@ -337,7 +333,8 @@ class TestCreateTextureLayer(unittest.TestCase):
 
         # Verify UVs were set
         self.assertEqual(mesh.uvs, uvs)
-        self.assertEqual(mesh.face_materials, face_materials)
+        # face_materials is converted from dict {0:0, 1:1} to list [0, 1]
+        self.assertEqual(mesh.face_materials, [0, 1])
 
 
 if __name__ == "__main__":

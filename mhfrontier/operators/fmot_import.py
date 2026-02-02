@@ -9,7 +9,7 @@ to the active armature as Blender Actions.
 import bpy
 import bpy_extras
 
-from ..fmod import fmot_importer_layer
+from ..importers import import_motion
 from ..logging_config import get_logger
 
 _logger = get_logger("operators")
@@ -56,7 +56,7 @@ class ImportFMOT(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         # Import the motion
         try:
-            action = fmot_importer_layer.import_motion(
+            action = import_motion(
                 self.properties.filepath,
                 armature,
             )

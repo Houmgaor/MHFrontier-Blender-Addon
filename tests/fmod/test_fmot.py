@@ -11,6 +11,7 @@ from mhfrontier.blender.mock_impl import (
     MockFCurve,
     MockObject,
 )
+from mhfrontier.blender.builders import get_mock_builders
 from mhfrontier.fmod import fmot
 from mhfrontier.fmod.fmot import (
     ChannelType,
@@ -19,7 +20,7 @@ from mhfrontier.fmod.fmot import (
     BoneAnimation,
     MotionData,
 )
-from mhfrontier.fmod import fmot_importer_layer
+from mhfrontier.importers import motion as motion_importer
 
 
 class TestKeyframeDataClass(unittest.TestCase):
@@ -144,7 +145,7 @@ class TestChannelToPropertyInfo(unittest.TestCase):
     def test_position_channels(self):
         """Test position channel mapping with axis swap."""
         # X stays X
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.POSITION_X
         )
         self.assertEqual(prop, "location")
@@ -152,7 +153,7 @@ class TestChannelToPropertyInfo(unittest.TestCase):
         self.assertEqual(ttype, "position")
 
         # Y becomes Z (index 2)
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.POSITION_Y
         )
         self.assertEqual(prop, "location")
@@ -160,7 +161,7 @@ class TestChannelToPropertyInfo(unittest.TestCase):
         self.assertEqual(ttype, "position")
 
         # Z becomes Y (index 1)
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.POSITION_Z
         )
         self.assertEqual(prop, "location")
@@ -169,14 +170,14 @@ class TestChannelToPropertyInfo(unittest.TestCase):
 
     def test_rotation_channels(self):
         """Test rotation channel mapping with axis swap."""
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.ROTATION_X
         )
         self.assertEqual(prop, "rotation_euler")
         self.assertEqual(idx, 0)
         self.assertEqual(ttype, "rotation")
 
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.ROTATION_Y
         )
         self.assertEqual(prop, "rotation_euler")
@@ -185,7 +186,7 @@ class TestChannelToPropertyInfo(unittest.TestCase):
 
     def test_scale_channels(self):
         """Test scale channel mapping."""
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(
+        prop, idx, ttype = motion_importer._channel_to_property_info(
             ChannelType.SCALE_X
         )
         self.assertEqual(prop, "scale")
@@ -194,7 +195,7 @@ class TestChannelToPropertyInfo(unittest.TestCase):
 
     def test_unknown_channel(self):
         """Test unknown channel returns None."""
-        prop, idx, ttype = fmot_importer_layer._channel_to_property_info(0x9999)
+        prop, idx, ttype = motion_importer._channel_to_property_info(0x9999)
         self.assertIsNone(prop)
         self.assertEqual(ttype, "unknown")
 
@@ -205,7 +206,7 @@ class TestTransformValue(unittest.TestCase):
     def test_position_scaling(self):
         """Test position values are scaled by IMPORT_SCALE."""
         # IMPORT_SCALE is 0.01, so 100 -> 1.0
-        result = fmot_importer_layer._transform_value(100.0, "position", 0)
+        result = motion_importer._transform_value(100.0, "position", 0)
         self.assertAlmostEqual(result, 1.0, places=5)
 
     def test_rotation_scaling(self):
@@ -213,11 +214,11 @@ class TestTransformValue(unittest.TestCase):
         import math
 
         # 32768 should map to pi
-        result = fmot_importer_layer._transform_value(32768.0, "rotation", 0)
+        result = motion_importer._transform_value(32768.0, "rotation", 0)
         self.assertAlmostEqual(result, math.pi, places=5)
 
         # -32768 should map to -pi
-        result = fmot_importer_layer._transform_value(-32768.0, "rotation", 0)
+        result = motion_importer._transform_value(-32768.0, "rotation", 0)
         self.assertAlmostEqual(result, -math.pi, places=5)
 
 
@@ -290,7 +291,7 @@ class TestImportMotionWithMock(unittest.TestCase):
 
     def test_import_empty_motion(self):
         """Test importing motion with no bone data."""
-        builder = MockAnimationBuilder()
+        builders = get_mock_builders()
 
         # Create a mock armature-like object
         @dataclass
@@ -301,8 +302,8 @@ class TestImportMotionWithMock(unittest.TestCase):
         armature = MockArmature()
 
         # Import empty bytes
-        action = fmot_importer_layer.import_motion_from_bytes(
-            b"", armature, "EmptyMotion", builder
+        action = motion_importer.import_motion_from_bytes(
+            b"", armature, "EmptyMotion", builders
         )
 
         # Should return None for empty motion
@@ -310,7 +311,7 @@ class TestImportMotionWithMock(unittest.TestCase):
 
     def test_import_creates_action(self):
         """Test that import creates action when given valid motion data."""
-        builder = MockAnimationBuilder()
+        builders = get_mock_builders()
 
         # Create motion data manually
         motion = MotionData(
@@ -333,13 +334,13 @@ class TestImportMotionWithMock(unittest.TestCase):
         )
 
         # Directly create action using builder to test builder works
-        action = builder.create_action("TestMotion")
-        fcurve = builder.create_fcurve(action, 'pose.bones["Bone.001"].location', 0)
-        builder.add_keyframe(fcurve, 0.0, 0.0)
-        builder.add_keyframe(fcurve, 30.0, 1.0)  # 100 * 0.01 scale
-        builder.set_action_frame_range(action, 0, 29)
+        action = builders.animation.create_action("TestMotion")
+        fcurve = builders.animation.create_fcurve(action, 'pose.bones["Bone.001"].location', 0)
+        builders.animation.add_keyframe(fcurve, 0.0, 0.0)
+        builders.animation.add_keyframe(fcurve, 30.0, 1.0)  # 100 * 0.01 scale
+        builders.animation.set_action_frame_range(action, 0, 29)
 
-        self.assertEqual(len(builder.created_actions), 1)
+        self.assertEqual(len(builders.animation.created_actions), 1)
         self.assertEqual(action.name, "TestMotion")
         self.assertEqual(len(action.fcurves), 1)
         self.assertEqual(len(action.fcurves[0].keyframe_points), 2)
@@ -350,7 +351,7 @@ class TestBezierHandleCalculation(unittest.TestCase):
 
     def test_zero_tangents(self):
         """Test handle calculation with zero tangents."""
-        left, right = fmot_importer_layer._calculate_bezier_handles(
+        left, right = motion_importer._calculate_bezier_handles(
             frame=10.0,
             value=5.0,
             tangent_in=0.0,
@@ -364,7 +365,7 @@ class TestBezierHandleCalculation(unittest.TestCase):
 
     def test_nonzero_tangents(self):
         """Test handle calculation with non-zero tangents."""
-        left, right = fmot_importer_layer._calculate_bezier_handles(
+        left, right = motion_importer._calculate_bezier_handles(
             frame=10.0,
             value=5.0,
             tangent_in=100.0,  # Slope going up coming in

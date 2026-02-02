@@ -7,23 +7,16 @@ Converts parsed motion data to Blender Actions with FCurves.
 
 from typing import Any, Dict, Optional, Tuple
 
-from ..config import IMPORT_SCALE, ROTATION_SCALE, AXIS_REMAP_3D
-from ..blender.api import AnimationBuilder
+from ..config import IMPORT_SCALE, ROTATION_SCALE
+from ..blender.builders import Builders, get_builders
 from ..logging_config import get_logger
-from . import fmot
-from .fmot import ChannelType, MotionData
+from ..fmod import fmot
+from ..fmod.fmot import ChannelType, MotionData
 
-_logger = get_logger("fmot_importer")
-
-
-def _get_default_builder() -> AnimationBuilder:
-    """Get default Blender animation builder (lazy import)."""
-    from ..blender.blender_impl import get_animation_builder
-
-    return get_animation_builder()
+_logger = get_logger("motion_importer")
 
 
-def _channel_to_property_info(channel_type: int) -> Tuple[str, int, str]:
+def _channel_to_property_info(channel_type: int) -> Tuple[Optional[str], int, str]:
     """
     Map channel type to Blender property info.
 
@@ -163,18 +156,18 @@ def _calculate_bezier_handles(
 def import_motion(
     filepath: str,
     armature: Any,
-    animation_builder: Optional[AnimationBuilder] = None,
+    builders: Optional[Builders] = None,
 ) -> Any:
     """
     Import a motion file and create a Blender Action.
 
     :param filepath: Path to .mot file.
     :param armature: Blender armature object to apply animation to.
-    :param animation_builder: Optional animation builder (defaults to Blender impl).
+    :param builders: Optional builders (defaults to Blender implementation).
     :return: Created Action, or None if import failed.
     """
-    if animation_builder is None:
-        animation_builder = _get_default_builder()
+    if builders is None:
+        builders = get_builders()
 
     # Load motion data
     motion_data = fmot.load_motion_file(filepath)
@@ -185,7 +178,7 @@ def import_motion(
 
     # Create action
     action_name = motion_data.name or "MHF_Motion"
-    action = animation_builder.create_action(action_name)
+    action = builders.animation.create_action(action_name)
 
     # Process each bone's animations
     for bone_id, bone_anim in motion_data.bone_animations.items():
@@ -212,7 +205,7 @@ def import_motion(
             data_path = f'pose.bones["{bone_name}"].{prop_name}'
 
             # Create FCurve
-            fcurve = animation_builder.create_fcurve(action, data_path, index)
+            fcurve = builders.animation.create_fcurve(action, data_path, index)
 
             # Add keyframes
             for kf in channel_anim.keyframes:
@@ -233,7 +226,7 @@ def import_motion(
                     )
 
                 # Add keyframe
-                animation_builder.add_keyframe(
+                builders.animation.add_keyframe(
                     fcurve,
                     float(kf.frame),
                     value,
@@ -244,11 +237,11 @@ def import_motion(
 
     # Set frame range
     if motion_data.frame_count > 0:
-        animation_builder.set_action_frame_range(action, 0, motion_data.frame_count - 1)
+        builders.animation.set_action_frame_range(action, 0, motion_data.frame_count - 1)
 
     # Assign action to armature
     if armature is not None:
-        animation_builder.assign_action_to_object(armature, action)
+        builders.animation.assign_action_to_object(armature, action)
 
     _logger.info(
         f"Imported motion '{action_name}' with {len(motion_data.bone_animations)} bones, "
@@ -262,7 +255,7 @@ def import_motion_from_bytes(
     data: bytes,
     armature: Any,
     name: str = "MHF_Motion",
-    animation_builder: Optional[AnimationBuilder] = None,
+    builders: Optional[Builders] = None,
 ) -> Any:
     """
     Import motion data from bytes and create a Blender Action.
@@ -270,11 +263,11 @@ def import_motion_from_bytes(
     :param data: Raw motion file bytes.
     :param armature: Blender armature object to apply animation to.
     :param name: Name for the created action.
-    :param animation_builder: Optional animation builder.
+    :param builders: Optional builders (defaults to Blender implementation).
     :return: Created Action, or None if import failed.
     """
-    if animation_builder is None:
-        animation_builder = _get_default_builder()
+    if builders is None:
+        builders = get_builders()
 
     # Load motion data from bytes
     motion_data = fmot.load_motion_from_bytes(data)
@@ -285,7 +278,7 @@ def import_motion_from_bytes(
         return None
 
     # Use the same import logic
-    action = animation_builder.create_action(name)
+    action = builders.animation.create_action(name)
 
     for bone_id, bone_anim in motion_data.bone_animations.items():
         bone_name = f"Bone.{bone_id:03d}"
@@ -297,7 +290,7 @@ def import_motion_from_bytes(
                 continue
 
             data_path = f'pose.bones["{bone_name}"].{prop_name}'
-            fcurve = animation_builder.create_fcurve(action, data_path, index)
+            fcurve = builders.animation.create_fcurve(action, data_path, index)
 
             for kf in channel_anim.keyframes:
                 value = _transform_value(kf.value, transform_type, channel_type)
@@ -314,7 +307,7 @@ def import_motion_from_bytes(
                         transform_type,
                     )
 
-                animation_builder.add_keyframe(
+                builders.animation.add_keyframe(
                     fcurve,
                     float(kf.frame),
                     value,
@@ -324,9 +317,9 @@ def import_motion_from_bytes(
                 )
 
     if motion_data.frame_count > 0:
-        animation_builder.set_action_frame_range(action, 0, motion_data.frame_count - 1)
+        builders.animation.set_action_frame_range(action, 0, motion_data.frame_count - 1)
 
     if armature is not None:
-        animation_builder.assign_action_to_object(armature, action)
+        builders.animation.assign_action_to_object(armature, action)
 
     return action

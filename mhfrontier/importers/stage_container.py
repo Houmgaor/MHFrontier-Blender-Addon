@@ -18,17 +18,10 @@ from ..stage.stage_container import (
     get_texture_segments,
     get_audio_segments,
 )
-from ..blender.api import SceneManager
+from ..blender.builders import Builders, get_builders
 from ..logging_config import get_logger
 
 _logger = get_logger("stage")
-
-
-def _get_default_scene_manager() -> SceneManager:
-    """Get default Blender scene manager (lazy import)."""
-    from ..blender.blender_impl import get_scene_manager
-
-    return get_scene_manager()
 
 
 def import_packed_stage(
@@ -37,7 +30,7 @@ def import_packed_stage(
     create_collection: bool,
     import_fmod_from_bytes_func: Callable,
     import_audio: bool = True,
-    scene_manager: Optional[SceneManager] = None,
+    builders: Optional[Builders] = None,
 ) -> List[Any]:
     """
     Import a packed stage container file.
@@ -47,7 +40,7 @@ def import_packed_stage(
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
     :param import_audio: Import audio files (OGG) if available.
-    :param scene_manager: Optional scene manager (defaults to Blender implementation).
+    :param builders: Optional builders (defaults to Blender implementation).
     :return: List of imported Blender objects.
     """
     with open(stage_path, "rb") as f:
@@ -63,7 +56,7 @@ def import_packed_stage(
         create_collection,
         import_fmod_from_bytes_func,
         import_audio,
-        scene_manager,
+        builders,
     )
 
 
@@ -74,7 +67,7 @@ def import_segments(
     create_collection: bool,
     import_fmod_from_bytes_func: Callable,
     import_audio: bool = True,
-    scene_manager: Optional[SceneManager] = None,
+    builders: Optional[Builders] = None,
 ) -> List[Any]:
     """
     Import segments from a parsed stage container.
@@ -85,18 +78,18 @@ def import_segments(
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
     :param import_audio: Import audio files (OGG) if available.
-    :param scene_manager: Optional scene manager (defaults to Blender implementation).
+    :param builders: Optional builders (defaults to Blender implementation).
     :return: List of imported Blender objects.
     """
-    if scene_manager is None:
-        scene_manager = _get_default_scene_manager()
+    if builders is None:
+        builders = get_builders()
 
     imported_objects: List[Any] = []
     collection = None
 
     if create_collection:
-        collection = scene_manager.create_collection(stage_name)
-        scene_manager.link_collection_to_scene(collection)
+        collection = builders.scene.create_collection(stage_name)
+        builders.scene.link_collection_to_scene(collection)
 
     # Collect texture data for later use
     texture_data = []
@@ -161,11 +154,11 @@ def import_segments(
                     tmp_path = tmp_file.name
 
                 # Load sound into Blender
-                sound = scene_manager.load_sound(tmp_path)
-                scene_manager.set_sound_name(sound, sound_name)
+                sound = builders.scene.load_sound(tmp_path)
+                builders.scene.set_sound_name(sound, sound_name)
 
                 # Pack the sound data into the blend file so temp file can be deleted
-                scene_manager.pack_sound(sound)
+                builders.scene.pack_sound(sound)
 
                 # Clean up temp file
                 Path(tmp_path).unlink(missing_ok=True)
