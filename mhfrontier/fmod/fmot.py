@@ -175,8 +175,7 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     Animation structure analysis:
     - Bone blocks use 0x80XXXXXX format where lower 16 bits indicate channel mask
     - Channel masks: 0x038=position, 0x1C0=rotation, 0x1F8=all
-    - Animation targets bones sequentially starting from bone 3
-      (bones 0-2 are typically root/control bones without vertex weights)
+    - Animation bone blocks map directly to skeleton bones (block 0 -> Bone.000, etc.)
 
     :param data: File data.
     :param start_offset: Offset to animation header.
@@ -196,10 +195,10 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     motion = MotionData()
     max_frame = 0
 
-    # Bone mapping: animation bone blocks map to skeleton bones starting at 3
-    # (bones 0-2 are root/control bones, bones 3+ have vertex weights)
+    # Bone mapping: animation bone blocks map directly to skeleton bones
+    # Block 0 -> Bone.000, Block 1 -> Bone.001, etc.
     bone_block_count = 0
-    current_bone_id = 3  # Start from first weighted bone
+    current_bone_id = 0
 
     # Parse blocks within this animation section
     pos = start_offset + 16
@@ -239,9 +238,9 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
 
         # Check for bone group block (0x80XXXXXX but not keyframe)
         if (block_type & 0x80000000) != 0:
-            # Map animation bone blocks to skeleton bones sequentially
-            # First block -> bone 3, second -> bone 4, etc.
-            current_bone_id = 3 + bone_block_count
+            # Map animation bone blocks directly to skeleton bones
+            # Block 0 -> Bone.000, Block 1 -> Bone.001, etc.
+            current_bone_id = bone_block_count
             bone_block_count += 1
 
             pos += 8
