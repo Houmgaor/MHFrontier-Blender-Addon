@@ -8,9 +8,51 @@ Created on Thu Apr 04 13:57:02 2019
 
 import abc
 import logging
-from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
+from enum import IntEnum
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 from ..common import data_containers, filelike, standard_structures
+
+
+class BlockType(IntEnum):
+    """
+    Block type identifiers for FMOD/FSKL file format.
+
+    Frontier uses a recursive block structure where each block has a 4-byte
+    type identifier. These are grouped by category:
+
+    Structural blocks (0x0000000X): Define file hierarchy
+    Geometry blocks (0x000X0000): Contain mesh data
+    Material blocks (0x000X0000): Contain material/texture data
+    Special blocks (0xX0000000): Skeleton and bone data
+    """
+
+    # Structural blocks - define file hierarchy
+    FILE = 0x00000001           # Top-level file container
+    MAIN = 0x00000002           # Main block containing mesh data
+    OBJECT = 0x00000004         # Object block containing geometry components
+    FACE = 0x00000005           # Face block containing triangle strip data
+    MATERIAL = 0x00000009       # Material definition block
+    TEXTURE = 0x0000000A        # Texture metadata block
+    INIT = 0x00020000           # Initialization block with file metadata
+
+    # Geometry data blocks
+    TRIS_STRIPS_A = 0x00030000  # Triangle strip indices (variant A)
+    TRIS_STRIPS_B = 0x00040000  # Triangle strip indices (variant B)
+    VERTEX = 0x00070000         # Vertex position data
+    NORMALS = 0x00080000        # Vertex normal data
+    UV = 0x000A0000             # Texture coordinate data
+    RGB = 0x000B0000            # Vertex color data
+    WEIGHT = 0x000C0000         # Bone weight data
+
+    # Material data blocks
+    MATERIAL_LIST = 0x00050000  # List of material references
+    MATERIAL_MAP = 0x00060000   # Material mapping data
+    BONE_MAP = 0x00100000       # Bone index remapping data
+
+    # Skeleton blocks
+    SKELETON = 0xC0000000       # Skeleton block containing bone hierarchy
+    BONE = 0x40000001           # Individual bone data
 
 if TYPE_CHECKING:
     from ..common.filelike import FileLike
@@ -69,7 +111,8 @@ class FBlock(abc.ABC):
         :param indents: Current indentation level.
         """
         name = type(self.get_type()).__name__
-        message = "\t" * indents + f"{name}: {self.header.count} \t{hex(self.header.type)}"
+        type_label = _format_block_type(self.header.type)
+        message = "\t" * indents + f"{name}: {self.header.count} \t{type_label}"
         if logger:
             logger.debug(message)
         else:
@@ -86,33 +129,46 @@ def _build_block_type_map() -> Dict[int, Type[Any]]:
     """Build the block type lookup map. Called after classes are defined."""
     return {
         # Structural blocks
-        0x00000001: FileBlock,
-        0x00000002: MainBlock,
-        0x00000004: ObjectBlock,
-        0x00000005: FaceBlock,
-        0x00000009: MaterialBlock,
-        0x0000000A: TextureBlock,
-        0x00020000: InitBlock,
-        0xC0000000: SkeletonBlock,
+        BlockType.FILE: FileBlock,
+        BlockType.MAIN: MainBlock,
+        BlockType.OBJECT: ObjectBlock,
+        BlockType.FACE: FaceBlock,
+        BlockType.MATERIAL: MaterialBlock,
+        BlockType.TEXTURE: TextureBlock,
+        BlockType.INIT: InitBlock,
+        BlockType.SKELETON: SkeletonBlock,
         # Bone data
-        0x40000001: standard_structures.BoneBlock,
+        BlockType.BONE: standard_structures.BoneBlock,
         # Geometry data
-        0x00030000: data_containers.TrisStripsData,
-        0x00040000: data_containers.TrisStripsData,
-        0x00070000: data_containers.VertexData,
-        0x00080000: data_containers.NormalsData,
-        0x000A0000: data_containers.UVData,
-        0x000B0000: data_containers.RGBData,
-        0x000C0000: standard_structures.WeightData,
+        BlockType.TRIS_STRIPS_A: data_containers.TrisStripsData,
+        BlockType.TRIS_STRIPS_B: data_containers.TrisStripsData,
+        BlockType.VERTEX: data_containers.VertexData,
+        BlockType.NORMALS: data_containers.NormalsData,
+        BlockType.UV: data_containers.UVData,
+        BlockType.RGB: data_containers.RGBData,
+        BlockType.WEIGHT: standard_structures.WeightData,
         # Material data
-        0x00050000: data_containers.MaterialList,
-        0x00060000: data_containers.MaterialMap,
-        0x00100000: data_containers.BoneMapData,
+        BlockType.MATERIAL_LIST: data_containers.MaterialList,
+        BlockType.MATERIAL_MAP: data_containers.MaterialMap,
+        BlockType.BONE_MAP: data_containers.BoneMapData,
     }
 
 
 # Initialized after class definitions (see end of module)
 BLOCK_TYPE_MAP: Dict[int, Type[Any]] = {}
+
+
+def _format_block_type(type_id: int) -> str:
+    """
+    Format a block type ID for display.
+
+    :param type_id: Block type identifier.
+    :return: Enum name if known, otherwise hex string.
+    """
+    try:
+        return BlockType(type_id).name
+    except ValueError:
+        return hex(type_id)
 
 
 def fblock_type_lookup(value: int) -> Type[Any]:
