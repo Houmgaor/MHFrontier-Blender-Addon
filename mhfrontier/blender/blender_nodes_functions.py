@@ -148,37 +148,6 @@ def rmt_setup(node_tree, texture, *_args):
     return inverter_node, splitter_node, rmt_node
 
 
-def fur_setup(node_tree, texture, *_args):
-    # TODO - Actually Finish This
-    # Create FMMap
-    fm_node = create_tex_node(node_tree, "COLOR", texture, "FM Texture")
-    # Separate RGB
-    splitter_node = node_tree.nodes.new(type="ShaderNodeSeparateRGB")
-    splitter_node.name = "FM Splitter"
-    node_tree.links.new(fm_node.outputs[0], splitter_node.inputs[0])
-    # Create Input
-    input_node = node_tree.nodes.new(type="NodeReroute")
-    input_node.name = "Reroute Node"
-    # Create Roughness - Create InvertNode
-    inverter_node = node_tree.nodes.new(type="ShaderNodeInvert")
-    inverter_node.name = "Fur Inverter"
-    node_tree.links.new(splitter_node.outputs[1], inverter_node.inputs[1])
-    # Create HairBSDF
-    transmission_node = node_tree.nodes.new(type="ShaderNodeHairBSDF")
-    transmission_node.component = "TRANSMISSION"
-    reflection_node = node_tree.nodes.new(type="ShaderNodeHairBSDF")
-    reflection_node.component = "REFLECTION"
-    for targetNode in [transmission_node, reflection_node]:
-        node_tree.links.new(input_node.outputs[0], targetNode.inputs[0])
-        node_tree.links.new(splitter_node.outputs[0], targetNode.inputs[1])
-        node_tree.links.new(splitter_node.outputs[1], targetNode.inputs[2])
-        node_tree.links.new(inverter_node.outputs[0], targetNode.inputs[3])
-    hair_node = node_tree.nodes.new(type="ShaderNodeMixShader")
-    node_tree.links.new(transmission_node.outputs[0], hair_node.inputs[1])
-    node_tree.links.new(reflection_node.outputs[0], hair_node.inputs[2])
-    return
-
-
 def finish_setup(node_tree, end_node):
     output_node = node_tree.nodes.new(type="ShaderNodeOutputMaterial")
     node_tree.links.new(end_node.outputs[0], output_node.inputs[0])
