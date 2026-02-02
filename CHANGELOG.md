@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Motion/animation import**: Import .mot files to apply animations to armatures (`File > Import > MHF Motion (.mot)`).
+- **FMOD export**: Export Blender meshes to .fmod format (`File > Export > MHF FMOD`).
+- **FSKL export**: Export armatures or empty hierarchies to .fskl format (`File > Export > MHF FSKL`).
+- **OGG audio extraction**: Stage containers now extract embedded OGG audio files.
+- GitHub Actions CI workflow for automated unit testing.
+- Type hints throughout core parser and importer modules (PEP 561 compliant with `py.typed` marker).
+- Unit tests for core parser modules.
+
+### Changed
+
+- Abstracted Blender API into interfaces (`blender/api.py`) enabling unit testing without Blender.
+- Replaced `print()` statements with proper `logging` module throughout codebase.
+- Replaced magic numbers with `BlockType` and `FileMagic` enums for better code readability.
+- Externalized import scale and axis remap constants to `config.py` module.
+- Split importer layers into focused, single-responsibility modules.
+- Renamed unknown fields with meaningful names based on reverse engineering.
+
+## [2.3.0] - 2025-04-01
+
+### Added
+
+- **Stage/map import**: Import entire stage containers (.pac) or directories of FMOD files.
+  - `File > Import > MHF Stage` for .pac container files.
+  - `File > Import > MHF Stage (Directory)` for folders containing multiple FMOD files.
+- JKR/JPK decompression support for compressed stage data.
+
 ## [2.2.0] - 2025-03-16
 
 ### Added
