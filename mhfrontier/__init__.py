@@ -25,6 +25,8 @@ if _BLENDER_AVAILABLE:
         fskl_import,
         fskl_convert,
         stage_import,
+        fmod_export_op,
+        fskl_export_op,
     )
 
 
@@ -35,7 +37,7 @@ bl_info = {
     "author": "AsteriskAmpersand (Code), Vuze (Structure), Houmgaor (Update)",
     "version": (2, 3, 0),
     "blender": (2, 80, 0),
-    "location": "File > Import-Export > FMod/MHF and Object > Create Armature from FSKL Tree",
+    "location": "File > Import-Export > MHF FMOD/FSKL and Object > Create Armature from FSKL Tree",
     "doc_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon",
     "tracker_url": "https://github.com/Houmgaor/MHFrontier-Blender-Addon/issues",
     "category": "Import-Export",
@@ -78,6 +80,20 @@ def register():
     bpy.utils.register_class(fskl_convert.ConvertFSKL)
     bpy.types.VIEW3D_MT_object.append(fskl_convert.menu_func)
 
+    # Register FMOD export
+    bpy.utils.register_class(fmod_export_op.ExportFMOD)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.append(fmod_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.append(fmod_export_op.menu_func_export)
+
+    # Register FSKL export
+    bpy.utils.register_class(fskl_export_op.ExportFSKL)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.append(fskl_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.append(fskl_export_op.menu_func_export)
+
 
 def unregister():
     """Remove the FMOD/FSKL add-on."""
@@ -108,6 +124,20 @@ def unregister():
     # Unregister Armature creation
     bpy.utils.unregister_class(fskl_convert.ConvertFSKL)
     bpy.types.VIEW3D_MT_object.remove(fskl_convert.menu_func)
+
+    # Unregister FMOD export
+    bpy.utils.unregister_class(fmod_export_op.ExportFMOD)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.remove(fmod_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.remove(fmod_export_op.menu_func_export)
+
+    # Unregister FSKL export
+    bpy.utils.unregister_class(fskl_export_op.ExportFSKL)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.remove(fskl_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.remove(fskl_export_op.menu_func_export)
 
 
 if __name__ == "__main__":

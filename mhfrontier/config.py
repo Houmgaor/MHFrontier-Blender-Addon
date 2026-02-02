@@ -21,6 +21,10 @@ from typing import Tuple
 #: Frontier models are 100x larger than typical Blender scale
 IMPORT_SCALE: float = 0.01  # 1/100
 
+#: Scale factor applied during export (Blender → Frontier)
+#: Inverse of IMPORT_SCALE
+EXPORT_SCALE: float = 100.0
+
 
 # =============================================================================
 # Axis Configuration
@@ -79,3 +83,62 @@ def transform_vector4(
         vec4[AXIS_REMAP[2]] * scale,
         vec4[AXIS_REMAP[3]] * scale,
     )
+
+
+# =============================================================================
+# Export Transformation Functions (Blender → Frontier)
+# =============================================================================
+
+def reverse_transform_vertex(
+    vertex: Tuple[float, float, float],
+    scale: float = EXPORT_SCALE,
+) -> Tuple[float, float, float]:
+    """
+    Transform a vertex from Blender to Frontier coordinate system.
+
+    Applies scale factor and swaps Y/Z axes (inverse of transform_vertex).
+
+    :param vertex: Blender vertex (x, y, z).
+    :param scale: Scale factor to apply (default: EXPORT_SCALE).
+    :return: Transformed vertex for Frontier (x, z, y) * scale.
+    """
+    # Blender (x, y, z) → Frontier (x, z, y) with scale
+    return (
+        vertex[0] * scale,
+        vertex[2] * scale,
+        vertex[1] * scale,
+    )
+
+
+def reverse_transform_vector4(
+    vec4: Tuple[float, float, float, float],
+    scale: float = EXPORT_SCALE,
+) -> Tuple[float, float, float, float]:
+    """
+    Transform a 4D vector from Blender to Frontier coordinate system.
+
+    Applies scale factor and remaps axes (inverse of transform_vector4).
+
+    :param vec4: Blender vector (x, y, z, w).
+    :param scale: Scale factor to apply (default: EXPORT_SCALE).
+    :return: Transformed vector for Frontier.
+    """
+    # Blender (x, y, z, w) → Frontier (x, z, y, w) with scale
+    return (
+        vec4[0] * scale,
+        vec4[2] * scale,
+        vec4[1] * scale,
+        vec4[3] * scale,
+    )
+
+
+def reverse_transform_uv(uv: Tuple[float, float]) -> Tuple[float, float]:
+    """
+    Transform UV coordinates from Blender to Frontier format.
+
+    Flips V coordinate back (inverse of frontier_uvs in fmesh.py).
+
+    :param uv: Blender UV coordinates (u, v).
+    :return: Frontier UV coordinates (u, 1-v).
+    """
+    return (uv[0], 1.0 - uv[1])

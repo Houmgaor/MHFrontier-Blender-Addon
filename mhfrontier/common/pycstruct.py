@@ -27,3 +27,15 @@ class PyCStruct(abc.ABC):
             if not hasattr(self, attr):
                 raise AttributeError(f"Object {self} has no attribute {attr}")
             self.__setattr__(attr, value)
+
+    def serialize(self) -> bytes:
+        """
+        Serialize this structure to bytes.
+
+        Collects all field values from object attributes and uses the
+        underlying CStruct to serialize them to binary data.
+
+        :return: Binary representation of the structure.
+        """
+        data = {attr: getattr(self, attr) for attr in self.fields.keys()}
+        return self.CStruct.serialize(data)
