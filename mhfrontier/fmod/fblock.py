@@ -57,52 +57,47 @@ class FBlock(abc.ABC):
         return fblock_type_lookup(self.header.type)()
 
 
+def _build_block_type_map():
+    """Build the block type lookup map. Called after classes are defined."""
+    return {
+        # Structural blocks
+        0x00000001: FileBlock,
+        0x00000002: MainBlock,
+        0x00000004: ObjectBlock,
+        0x00000005: FaceBlock,
+        0x00000009: MaterialBlock,
+        0x0000000A: TextureBlock,
+        0x00020000: InitBlock,
+        0xC0000000: SkeletonBlock,
+        # Bone data
+        0x40000001: standard_structures.BoneBlock,
+        # Geometry data
+        0x00030000: data_containers.TrisStripsData,
+        0x00040000: data_containers.TrisStripsData,
+        0x00070000: data_containers.VertexData,
+        0x00080000: data_containers.NormalsData,
+        0x000A0000: data_containers.UVData,
+        0x000B0000: data_containers.RGBData,
+        0x000C0000: standard_structures.WeightData,
+        # Material data
+        0x00050000: data_containers.MaterialList,
+        0x00060000: data_containers.MaterialMap,
+        0x00100000: data_containers.BoneMapData,
+    }
+
+
+# Initialized after class definitions (see end of module)
+BLOCK_TYPE_MAP = {}
+
+
 def fblock_type_lookup(value):
     """
-    Return the block corresponding to value.
+    Return the block class corresponding to a type ID.
 
-    :param int value: Block identifier.
+    :param int value: Block type identifier.
+    :return: Block class for the given type, or UnknBlock if unknown.
     """
-
-    if value == 0x00020000:
-        return InitBlock
-    if value == 0x00000001:
-        return FileBlock
-    if value == 0x00000002:
-        return MainBlock
-    if value == 0x00000004:
-        return ObjectBlock
-    if value == 0x00000005:
-        return FaceBlock
-    if value == 0x00000009:
-        return MaterialBlock
-    if value == 0x0000000A:
-        return TextureBlock
-    if value == 0xC0000000:
-        return SkeletonBlock
-    if value == 0x40000001:
-        return standard_structures.BoneBlock
-    if value == 0x00030000:
-        return data_containers.TrisStripsData
-    if value == 0x00040000:
-        return data_containers.TrisStripsData
-    if value == 0x00050000:
-        return data_containers.MaterialList
-    if value == 0x00060000:
-        return data_containers.MaterialMap
-    if value == 0x00070000:
-        return data_containers.VertexData
-    if value == 0x00080000:
-        return data_containers.NormalsData
-    if value == 0x000A0000:
-        return data_containers.UVData
-    if value == 0x000B0000:
-        return data_containers.RGBData
-    if value == 0x000C0000:
-        return standard_structures.WeightData
-    if value == 0x00100000:
-        return data_containers.BoneMapData
-    return UnknBlock
+    return BLOCK_TYPE_MAP.get(value, UnknBlock)
 
 
 class FileBlock(FBlock):
@@ -168,3 +163,7 @@ class UnknBlock(FBlock):
 
     def pretty_print(self, indents=0):
         pass
+
+
+# Initialize the block type map now that all classes are defined
+BLOCK_TYPE_MAP.update(_build_block_type_map())
