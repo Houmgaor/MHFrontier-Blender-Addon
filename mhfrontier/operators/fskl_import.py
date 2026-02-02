@@ -10,6 +10,9 @@ import bpy
 import bpy_extras
 
 from ..fmod import fskl_importer_layer
+from ..logging_config import get_logger
+
+_logger = get_logger("operators")
 
 
 class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -30,7 +33,7 @@ class ImportFSKL(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         try:
             bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
-            print(error)
+            _logger.debug(f"Mode switch warning: {error}")
         bpy.ops.object.select_all(action="DESELECT")
         fskl_importer_layer.import_skeleton(self.properties.filepath)
         return {"FINISHED"}

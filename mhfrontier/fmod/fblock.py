@@ -7,7 +7,8 @@ Created on Thu Apr 04 13:57:02 2019
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+import logging
+from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 
 from ..common import data_containers, filelike, standard_structures
 
@@ -56,16 +57,25 @@ class FBlock(abc.ABC):
         for datum in self.data:
             datum.marshall(sub_data)
 
-    def pretty_print(self, indents: int = 0) -> None:
+    def pretty_print(
+        self,
+        logger: Optional[logging.Logger] = None,
+        indents: int = 0,
+    ) -> None:
         """
-        Print the block hierarchy to console.
+        Print the block hierarchy to console or logger.
 
+        :param logger: Logger to use (if None, prints to stdout).
         :param indents: Current indentation level.
         """
         name = type(self.get_type()).__name__
-        print("\t" * indents + f"{name}: {self.header.count} \t{hex(self.header.type)}")
+        message = "\t" * indents + f"{name}: {self.header.count} \t{hex(self.header.type)}"
+        if logger:
+            logger.debug(message)
+        else:
+            print(message)
         for datum in self.data:
-            datum.pretty_print(indents + 1)
+            datum.pretty_print(logger, indents + 1)
 
     def get_type(self) -> Any:
         """Get an instance of the block type for this header."""
@@ -158,7 +168,11 @@ class SimpleFBlock(FBlock):
         """Get an instance of the struct type."""
         return self.struct_type()
 
-    def pretty_print(self, indents: int = 0) -> None:
+    def pretty_print(
+        self,
+        logger: Optional[logging.Logger] = None,
+        indents: int = 0,
+    ) -> None:
         """Simple blocks don't print their contents."""
         pass
 
@@ -185,7 +199,11 @@ class InitBlock(FBlock):
         self.data = standard_structures.InitData()
         self.data.marshall(data)
 
-    def pretty_print(self, indents: int = 0) -> None:
+    def pretty_print(
+        self,
+        logger: Optional[logging.Logger] = None,
+        indents: int = 0,
+    ) -> None:
         """Init blocks don't print their contents."""
         pass
 
@@ -197,7 +215,11 @@ class UnknBlock(FBlock):
         """Store raw data without parsing."""
         self.data = data
 
-    def pretty_print(self, indents: int = 0) -> None:
+    def pretty_print(
+        self,
+        logger: Optional[logging.Logger] = None,
+        indents: int = 0,
+    ) -> None:
         """Unknown blocks don't print their contents."""
         pass
 

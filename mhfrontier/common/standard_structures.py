@@ -122,8 +122,8 @@ class WeightData(PyCStruct):
         for w in self.weights:
             w.marshall(data)
 
-    def pretty_print(self, base=0):
-        """Disables printing."""
+    def pretty_print(self, logger=None, indents=0):
+        """Weight data doesn't print its contents."""
         pass
 
 
@@ -168,7 +168,8 @@ class BoneBlock(PyCStruct):
         )
         super().__init__(fields)
 
-    def pretty_print(self, indent=0):
+    def pretty_print(self, logger=None, indents=0):
+        """Bone blocks don't print their contents."""
         pass
 
 

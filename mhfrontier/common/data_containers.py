@@ -3,6 +3,8 @@ Definition file for DataContainer classses.
 """
 
 import abc
+import logging
+from typing import Optional
 
 from ..common import standard_structures as sstructs
 
@@ -23,7 +25,12 @@ class DataContainer(abc.ABC):
     def marshall(self, data):
         self.data.marshall(data)
 
-    def pretty_print(self, indents=0):
+    def pretty_print(
+        self,
+        logger: Optional[logging.Logger] = None,
+        indents: int = 0,
+    ) -> None:
+        """Data containers don't print their contents."""
         pass
 
 

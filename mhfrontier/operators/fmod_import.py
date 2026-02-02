@@ -10,6 +10,9 @@ import bpy
 import bpy_extras
 
 from ..fmod import fmod_importer_layer
+from ..logging_config import get_logger
+
+_logger = get_logger("operators")
 
 
 class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -41,7 +44,7 @@ class ImportFMOD(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         try:
             bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
-            print(error)
+            _logger.debug(f"Mode switch warning: {error}")
         bpy.ops.object.select_all(action="DESELECT")
 
         if self.clear_scene:

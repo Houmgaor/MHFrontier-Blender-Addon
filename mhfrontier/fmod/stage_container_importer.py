@@ -5,7 +5,8 @@ Stage container import for packed .pac files.
 Handles parsing and importing segments from packed stage containers.
 """
 
-from typing import List, Optional
+from pathlib import Path
+from typing import Callable, List, Optional
 
 import bpy
 
@@ -17,13 +18,16 @@ from ..stage.stage_container import (
     get_fmod_segments,
     get_texture_segments,
 )
+from ..logging_config import get_logger
+
+_logger = get_logger("stage")
 
 
 def import_packed_stage(
-    stage_path,
+    stage_path: Path,
     import_textures: bool,
     create_collection: bool,
-    import_fmod_from_bytes_func,
+    import_fmod_from_bytes_func: Callable,
 ) -> List[bpy.types.Object]:
     """
     Import a packed stage container file.
@@ -38,7 +42,7 @@ def import_packed_stage(
         data = f.read()
 
     segments = parse_stage_container(data)
-    print(f"Parsed stage container: {len(segments)} segments")
+    _logger.info(f"Parsed stage container: {len(segments)} segments")
 
     return import_segments(
         segments,
@@ -54,7 +58,7 @@ def import_segments(
     stage_name: str,
     import_textures: bool,
     create_collection: bool,
-    import_fmod_from_bytes_func,
+    import_fmod_from_bytes_func: Callable,
 ) -> List[bpy.types.Object]:
     """
     Import segments from a parsed stage container.
@@ -89,7 +93,7 @@ def import_segments(
                 # Decompress first
                 decompressed = decompress_jkr(segment.data)
                 if decompressed is None:
-                    print(f"Failed to decompress segment {segment.index}")
+                    _logger.warning(f"Failed to decompress segment {segment.index}")
                     continue
 
                 # Try to import as FMOD
@@ -102,7 +106,9 @@ def import_segments(
                     )
                     imported_objects.extend(objects)
                 except Exception as e:
-                    print(f"Segment {segment.index}: decompressed but couldn't parse as FMOD: {e}")
+                    _logger.warning(
+                        f"Segment {segment.index}: decompressed but couldn't parse as FMOD: {e}"
+                    )
 
             elif segment.segment_type == SegmentType.FMOD:
                 objects = import_fmod_from_bytes_func(
@@ -114,6 +120,6 @@ def import_segments(
                 imported_objects.extend(objects)
 
         except Exception as e:
-            print(f"Error processing segment {segment.index}: {e}")
+            _logger.error(f"Error processing segment {segment.index}: {e}")
 
     return imported_objects

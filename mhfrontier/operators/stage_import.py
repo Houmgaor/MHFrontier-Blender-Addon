@@ -5,13 +5,16 @@ Importer operator for MHF Stage/Map files.
 Supports both packed .pac containers and unpacked directories.
 """
 
-import os
+import traceback
 from pathlib import Path
 
 import bpy
 import bpy_extras
 
 from ..fmod import stage_importer_layer
+from ..logging_config import get_logger
+
+_logger = get_logger("operators")
 
 
 class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -58,7 +61,7 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         try:
             bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
-            print(error)
+            _logger.debug(f"Mode switch warning: {error}")
 
         bpy.ops.object.select_all(action="DESELECT")
 
@@ -92,8 +95,7 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         except Exception as e:
             self.report({"ERROR"}, f"Import failed: {e}")
-            import traceback
-            traceback.print_exc()
+            _logger.error(f"Import failed: {e}\n{traceback.format_exc()}")
             return {"CANCELLED"}
 
         return {"FINISHED"}
@@ -152,7 +154,7 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         try:
             bpy.ops.object.mode_set(mode="OBJECT")
         except RuntimeError as error:
-            print(error)
+            _logger.debug(f"Mode switch warning: {error}")
 
         bpy.ops.object.select_all(action="DESELECT")
 
@@ -181,16 +183,14 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                         filepath, self.import_textures, collection
                     )
                 else:
-                    print(f"Skipping unknown file type: {filepath.name}")
+                    _logger.warning(f"Skipping unknown file type: {filepath.name}")
                     continue
 
                 total_objects += len(objects)
-                print(f"Imported {len(objects)} objects from {filepath.name}")
+                _logger.info(f"Imported {len(objects)} objects from {filepath.name}")
 
             except Exception as e:
-                print(f"Error importing {filepath.name}: {e}")
-                import traceback
-                traceback.print_exc()
+                _logger.error(f"Error importing {filepath.name}: {e}\n{traceback.format_exc()}")
 
         self.report({"INFO"}, f"Imported {total_objects} objects from {len(self.files)} files")
         return {"FINISHED"}

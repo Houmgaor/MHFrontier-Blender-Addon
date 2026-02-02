@@ -14,6 +14,9 @@ from .operators import (
     fskl_convert,
     stage_import,
 )
+from .logging_config import get_logger
+
+_logger = get_logger()
 
 
 content = bytes("", "UTF-8")
@@ -102,6 +105,6 @@ if __name__ == "__main__":
     try:
         unregister()
     except Exception as err:
-        print("Cannot unregister: ", err)
+        _logger.warning(f"Cannot unregister: {err}")
     finally:
         register()

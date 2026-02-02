@@ -10,6 +10,9 @@ from typing import List, Tuple
 
 from . import fblock, fmat, fmesh
 from ..common import filelike
+from ..logging_config import get_logger
+
+_logger = get_logger("fmod")
 
 
 def load_fmod_file(file_path: str) -> Tuple[List["fmesh.FMesh"], List["fmat.FMat"]]:
@@ -40,8 +43,8 @@ def load_fmod_file_from_bytes(
     frontier_file = fblock.FBlock()
     frontier_file.marshall(filelike.FileLike(data))
     if verbose:
-        print("FMOD file structure\n===================")
-        frontier_file.pretty_print()
+        _logger.debug("FMOD file structure")
+        frontier_file.pretty_print(_logger)
     for i, datum in enumerate(frontier_file.data[1:4]):
         if not isinstance(datum, fblock.FileBlock):
             raise TypeError(
