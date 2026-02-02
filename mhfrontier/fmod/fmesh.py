@@ -2,12 +2,14 @@
 Simple FMesh class.
 """
 
-import warnings
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from . import fblock
 from ..common.standard_structures import WeightData
 from ..common import data_containers as containers
+from ..logging_config import get_logger
+
+_logger = get_logger("fmesh")
 
 
 def frontier_faces(face_block: List[Any]) -> List[List[int]]:
@@ -155,7 +157,7 @@ class FMesh:
             elif typing is fblock.UnknBlock:
                 properties[typing] = objectBlock.data
             else:
-                warnings.warn(f"Unknown block type {type(objectBlock)}")
+                _logger.warning("Unknown block type %s", type(objectBlock).__name__)
 
         self.faces = properties[fblock.FaceBlock]
         self.material_list = properties[containers.MaterialList]
@@ -171,20 +173,18 @@ class FMesh:
         if containers.UVData in properties:
             self.uvs = properties[containers.UVData]
         else:
-            warnings.warn("No UV data found for this model. Texture won't be rendered.")
+            _logger.debug("No UV data found for this model. Texture won't be rendered.")
             self.uvs = None
         self.rgb_like = properties[containers.RGBData]
         if WeightData in properties:
             self.weights = properties[WeightData]
         else:
-            warnings.warn(
-                "No weights data found for this model. Pose editing won't work."
-            )
+            _logger.debug("No weights data found for this model. Pose editing won't work.")
             self.weights = None
         if containers.BoneMapData in properties:
             self.bone_remap = properties[containers.BoneMapData]
         else:
-            warnings.warn("No bone map data. Pose won't be available.")
+            _logger.debug("No bone map data. Pose won't be available.")
             self.bone_remap = None
 
     @staticmethod

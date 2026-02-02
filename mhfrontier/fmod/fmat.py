@@ -2,11 +2,14 @@
 Frontier material file.
 """
 
-import warnings
 from typing import List, Optional, TYPE_CHECKING
+
+from ..logging_config import get_logger
 
 if TYPE_CHECKING:
     from . import fblock
+
+_logger = get_logger("fmat")
 
 
 class FMat:
@@ -46,4 +49,4 @@ class FMat:
             elif i == 2:
                 self.specular_id = image_id
             else:
-                warnings.warn(f"Unknown texture index {i}, will be ignored")
+                _logger.warning("Unknown texture index %d, will be ignored", i)
