@@ -10,10 +10,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from ..config import (
     EXPORT_SCALE,
+    ROTATION_EXPORT_SCALE,
     reverse_transform_vertex,
     reverse_transform_vector4,
     reverse_transform_uv,
 )
+from ..fmod.fmot import ChannelType
 from ..logging_config import get_logger
 
 _logger = get_logger("export.blender_extractor")
@@ -388,3 +390,299 @@ class MaterialExtractor:
             shininess=shininess,
             texture_ids=texture_ids,
         )
+
+
+# =============================================================================
+# Motion/Animation Extraction
+# =============================================================================
+
+
+@dataclass
+class ExtractedKeyframe:
+    """Extracted keyframe data ready for FMOT export."""
+    frame: int
+    value: float
+    tangent_in: float = 0.0
+    tangent_out: float = 0.0
+
+
+@dataclass
+class ExtractedChannel:
+    """Extracted animation channel (e.g., position X)."""
+    channel_type: int
+    keyframes: List[ExtractedKeyframe] = field(default_factory=list)
+
+
+@dataclass
+class ExtractedBoneAnimation:
+    """Extracted animation data for a single bone."""
+    bone_id: int
+    channels: Dict[int, ExtractedChannel] = field(default_factory=dict)
+
+
+@dataclass
+class ExtractedMotion:
+    """Complete extracted motion/animation data."""
+    name: str
+    frame_count: int
+    bone_animations: Dict[int, ExtractedBoneAnimation] = field(default_factory=dict)
+
+
+# Mapping from Blender FCurve (data_path, index) to Frontier channel type
+# Note: Y/Z are swapped between Blender (Z-up) and Frontier (Y-up)
+BLENDER_TO_FRONTIER_CHANNEL: Dict[Tuple[str, int], int] = {
+    ("location", 0): ChannelType.POSITION_X,
+    ("location", 1): ChannelType.POSITION_Z,  # Blender Y -> Frontier Z
+    ("location", 2): ChannelType.POSITION_Y,  # Blender Z -> Frontier Y
+    ("rotation_euler", 0): ChannelType.ROTATION_X,
+    ("rotation_euler", 1): ChannelType.ROTATION_Z,  # Blender Y -> Frontier Z
+    ("rotation_euler", 2): ChannelType.ROTATION_Y,  # Blender Z -> Frontier Y
+    ("scale", 0): ChannelType.SCALE_X,
+    ("scale", 1): ChannelType.SCALE_Z,  # Blender Y -> Frontier Z
+    ("scale", 2): ChannelType.SCALE_Y,  # Blender Z -> Frontier Y
+}
+
+
+class MotionExtractor:
+    """
+    Extract motion/animation data from Blender Actions.
+
+    Converts Blender FCurves to Frontier keyframe format with appropriate
+    coordinate and value transformations.
+    """
+
+    def __init__(self) -> None:
+        """Create a motion extractor."""
+        self._logger = get_logger("export.motion_extractor")
+
+    def extract_from_action(
+        self,
+        action: Any,
+        armature: Any,
+    ) -> ExtractedMotion:
+        """
+        Extract motion data from a Blender Action.
+
+        :param action: Blender Action containing animation data.
+        :param armature: Blender armature the action is associated with.
+        :return: Extracted motion data.
+        """
+        motion = ExtractedMotion(
+            name=action.name if action else "Unknown",
+            frame_count=0,
+            bone_animations={},
+        )
+
+        if action is None:
+            return motion
+
+        # Get frame range
+        frame_start, frame_end = action.frame_range
+        motion.frame_count = int(frame_end - frame_start) + 1
+
+        # Process each FCurve
+        for fcurve in action.fcurves:
+            self._process_fcurve(fcurve, motion)
+
+        return motion
+
+    def _process_fcurve(self, fcurve: Any, motion: ExtractedMotion) -> None:
+        """
+        Process a single FCurve and add to motion data.
+
+        :param fcurve: Blender FCurve.
+        :param motion: Motion data to add to.
+        """
+        data_path = fcurve.data_path
+        array_index = fcurve.array_index
+
+        # Parse bone name from data path (e.g., 'pose.bones["Bone.001"].location')
+        bone_id = self._extract_bone_id(data_path)
+        if bone_id is None:
+            self._logger.debug(f"Skipping non-bone FCurve: {data_path}")
+            return
+
+        # Extract property name (location, rotation_euler, scale)
+        prop_name = self._extract_property_name(data_path)
+        if prop_name is None:
+            self._logger.debug(f"Unknown property in FCurve: {data_path}")
+            return
+
+        # Map to Frontier channel type
+        channel_key = (prop_name, array_index)
+        if channel_key not in BLENDER_TO_FRONTIER_CHANNEL:
+            self._logger.debug(f"Unknown channel mapping: {channel_key}")
+            return
+
+        channel_type = BLENDER_TO_FRONTIER_CHANNEL[channel_key]
+
+        # Get or create bone animation
+        if bone_id not in motion.bone_animations:
+            motion.bone_animations[bone_id] = ExtractedBoneAnimation(
+                bone_id=bone_id,
+                channels={},
+            )
+
+        bone_anim = motion.bone_animations[bone_id]
+
+        # Get or create channel
+        if channel_type not in bone_anim.channels:
+            bone_anim.channels[channel_type] = ExtractedChannel(
+                channel_type=channel_type,
+                keyframes=[],
+            )
+
+        channel = bone_anim.channels[channel_type]
+
+        # Determine transform type for value conversion
+        transform_type = self._get_transform_type(prop_name)
+
+        # Extract keyframes
+        for kp in fcurve.keyframe_points:
+            keyframe = self._extract_keyframe(kp, transform_type)
+            channel.keyframes.append(keyframe)
+
+        # Sort keyframes by frame
+        channel.keyframes.sort(key=lambda kf: kf.frame)
+
+    def _extract_bone_id(self, data_path: str) -> Optional[int]:
+        """
+        Extract bone ID from FCurve data path.
+
+        Handles paths like 'pose.bones["Bone.001"].location'.
+
+        :param data_path: FCurve data path.
+        :return: Bone ID or None if not a bone path.
+        """
+        import re
+
+        # Match 'pose.bones["Bone.XXX"]' pattern
+        match = re.search(r'pose\.bones\["Bone\.(\d+)"\]', data_path)
+        if match:
+            return int(match.group(1))
+
+        # Also try matching just a numeric bone name
+        match = re.search(r'pose\.bones\["(\d+)"\]', data_path)
+        if match:
+            return int(match.group(1))
+
+        return None
+
+    def _extract_property_name(self, data_path: str) -> Optional[str]:
+        """
+        Extract the property name from a data path.
+
+        :param data_path: FCurve data path.
+        :return: Property name (location, rotation_euler, scale) or None.
+        """
+        if data_path.endswith(".location"):
+            return "location"
+        elif data_path.endswith(".rotation_euler"):
+            return "rotation_euler"
+        elif data_path.endswith(".scale"):
+            return "scale"
+        return None
+
+    def _get_transform_type(self, prop_name: str) -> str:
+        """
+        Get transform type from property name.
+
+        :param prop_name: Property name.
+        :return: Transform type string.
+        """
+        if prop_name == "location":
+            return "position"
+        elif prop_name == "rotation_euler":
+            return "rotation"
+        elif prop_name == "scale":
+            return "scale"
+        return "unknown"
+
+    def _extract_keyframe(
+        self,
+        keyframe_point: Any,
+        transform_type: str,
+    ) -> ExtractedKeyframe:
+        """
+        Extract a keyframe from a Blender keyframe point.
+
+        Converts value and tangents from Blender to Frontier format.
+
+        :param keyframe_point: Blender keyframe point.
+        :param transform_type: Type of transform (position, rotation, scale).
+        :return: Extracted keyframe.
+        """
+        frame = int(keyframe_point.co[0])
+        blender_value = keyframe_point.co[1]
+
+        # Transform value from Blender to Frontier
+        value = self._transform_value(blender_value, transform_type)
+
+        # Extract tangents from Bezier handles
+        tangent_in = 0.0
+        tangent_out = 0.0
+
+        if keyframe_point.interpolation == "BEZIER":
+            handle_left = keyframe_point.handle_left
+            handle_right = keyframe_point.handle_right
+
+            # Reverse of _calculate_bezier_handles from motion.py
+            # handle_distance = 1.0 / 3.0
+            # handle_left = (frame - handle_distance, value - tan_in * handle_distance)
+            # handle_right = (frame + handle_distance, value + tan_out * handle_distance)
+            handle_distance = 1.0 / 3.0
+
+            # Calculate tangent from handle offset
+            # Note: We need to use the transformed value for consistency
+            tan_in_raw = (blender_value - handle_left[1]) / handle_distance
+            tan_out_raw = (handle_right[1] - blender_value) / handle_distance
+
+            # Transform tangents
+            tangent_in = self._transform_tangent(tan_in_raw, transform_type)
+            tangent_out = self._transform_tangent(tan_out_raw, transform_type)
+
+        return ExtractedKeyframe(
+            frame=frame,
+            value=value,
+            tangent_in=tangent_in,
+            tangent_out=tangent_out,
+        )
+
+    def _transform_value(self, value: float, transform_type: str) -> float:
+        """
+        Transform a value from Blender to Frontier format.
+
+        :param value: Blender value.
+        :param transform_type: Type of transform.
+        :return: Frontier format value.
+        """
+        if transform_type == "position":
+            # Scale positions (Blender → Frontier: multiply by 100)
+            return value * EXPORT_SCALE
+
+        elif transform_type == "rotation":
+            # Convert radians to int16-compatible value
+            return value * ROTATION_EXPORT_SCALE
+
+        elif transform_type == "scale":
+            # Scale is stored as offset from 1.0
+            # Blender 1.0 = no scale, Frontier 0 = no scale
+            return (value - 1.0) * 32768.0
+
+        return value
+
+    def _transform_tangent(self, tangent: float, transform_type: str) -> float:
+        """
+        Transform a tangent value from Blender to Frontier format.
+
+        :param tangent: Blender tangent value.
+        :param transform_type: Type of transform.
+        :return: Frontier format tangent.
+        """
+        if transform_type == "position":
+            return tangent * EXPORT_SCALE
+        elif transform_type == "rotation":
+            return tangent * ROTATION_EXPORT_SCALE
+        elif transform_type == "scale":
+            return tangent * 32768.0
+        return tangent

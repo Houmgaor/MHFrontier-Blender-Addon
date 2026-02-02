@@ -153,5 +153,9 @@ def reverse_transform_uv(uv: Tuple[float, float]) -> Tuple[float, float]:
 #: Motion values range from -32768 to 32767, mapping to -pi to pi
 ROTATION_SCALE: float = math.pi / 32768.0
 
+#: Rotation scaling factor for export (converts radians to int16)
+#: Inverse of ROTATION_SCALE for Blender → Frontier conversion
+ROTATION_EXPORT_SCALE: float = 32768.0 / math.pi
+
 #: Frame rate for MHF animations (30 fps)
 MOTION_FRAMERATE: float = 30.0
