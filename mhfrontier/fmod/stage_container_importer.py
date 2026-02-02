@@ -5,6 +5,7 @@ Stage container import for packed .pac files.
 Handles parsing and importing segments from packed stage containers.
 """
 
+import tempfile
 from pathlib import Path
 from typing import Callable, List, Optional
 
@@ -17,6 +18,7 @@ from ..stage.stage_container import (
     SegmentType,
     get_fmod_segments,
     get_texture_segments,
+    get_audio_segments,
 )
 from ..logging_config import get_logger
 
@@ -28,6 +30,7 @@ def import_packed_stage(
     import_textures: bool,
     create_collection: bool,
     import_fmod_from_bytes_func: Callable,
+    import_audio: bool = True,
 ) -> List[bpy.types.Object]:
     """
     Import a packed stage container file.
@@ -36,6 +39,7 @@ def import_packed_stage(
     :param import_textures: Import textures if available.
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
+    :param import_audio: Import audio files (OGG) if available.
     :return: List of imported Blender objects.
     """
     with open(stage_path, "rb") as f:
@@ -50,6 +54,7 @@ def import_packed_stage(
         import_textures,
         create_collection,
         import_fmod_from_bytes_func,
+        import_audio,
     )
 
 
@@ -59,6 +64,7 @@ def import_segments(
     import_textures: bool,
     create_collection: bool,
     import_fmod_from_bytes_func: Callable,
+    import_audio: bool = True,
 ) -> List[bpy.types.Object]:
     """
     Import segments from a parsed stage container.
@@ -68,6 +74,7 @@ def import_segments(
     :param import_textures: Import textures if available.
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
+    :param import_audio: Import audio files (OGG) if available.
     :return: List of imported Blender objects.
     """
     imported_objects = []
@@ -121,5 +128,37 @@ def import_segments(
 
         except Exception as e:
             _logger.error(f"Error processing segment {segment.index}: {e}")
+
+    # Process audio segments (OGG)
+    if import_audio:
+        audio_segments = get_audio_segments(segments)
+        if audio_segments:
+            _logger.info(f"Found {len(audio_segments)} audio segments")
+
+        for segment in audio_segments:
+            try:
+                sound_name = f"{stage_name}_audio_{segment.index:04d}"
+
+                # Write to temp file (Blender requires file path to load sounds)
+                with tempfile.NamedTemporaryFile(
+                    suffix=".ogg", delete=False
+                ) as tmp_file:
+                    tmp_file.write(segment.data)
+                    tmp_path = tmp_file.name
+
+                # Load sound into Blender
+                sound = bpy.data.sounds.load(tmp_path)
+                sound.name = sound_name
+
+                # Pack the sound data into the blend file so temp file can be deleted
+                sound.pack()
+
+                # Clean up temp file
+                Path(tmp_path).unlink(missing_ok=True)
+
+                _logger.info(f"Imported audio: {sound_name}")
+
+            except Exception as e:
+                _logger.error(f"Error importing audio segment {segment.index}: {e}")
 
     return imported_objects

@@ -38,6 +38,7 @@ def import_stage(
     import_textures: bool = True,
     clear_scene: bool = True,
     create_collection: bool = True,
+    import_audio: bool = True,
 ) -> List[bpy.types.Object]:
     """
     Import a stage/map file into Blender.
@@ -46,6 +47,7 @@ def import_stage(
     :param import_textures: Import textures if available.
     :param clear_scene: Clear scene before import.
     :param create_collection: Create a collection for the stage objects.
+    :param import_audio: Import audio files (OGG) if available.
     :return: List of imported Blender objects.
     """
     if clear_scene:
@@ -62,6 +64,7 @@ def import_stage(
             import_textures,
             create_collection,
             import_fmod_from_bytes,
+            import_audio,
         )
 
 

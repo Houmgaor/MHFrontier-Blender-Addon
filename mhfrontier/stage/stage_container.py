@@ -208,3 +208,13 @@ def get_texture_segments(segments: List[StageSegment]) -> List[StageSegment]:
     :return: Texture segments.
     """
     return [s for s in segments if s.segment_type in (SegmentType.PNG, SegmentType.DDS)]
+
+
+def get_audio_segments(segments: List[StageSegment]) -> List[StageSegment]:
+    """
+    Get all audio segments (OGG).
+
+    :param segments: List of parsed segments.
+    :return: Audio segments.
+    """
+    return [s for s in segments if s.segment_type == SegmentType.OGG]

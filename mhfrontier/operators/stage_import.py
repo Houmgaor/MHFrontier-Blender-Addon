@@ -50,6 +50,12 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=True,
     )
 
+    import_audio: bpy.props.BoolProperty(
+        name="Import Audio",
+        description="Import audio files (OGG) from the stage container",
+        default=True,
+    )
+
     # Allow selecting directories for unpacked stages
     use_filter_folder: bpy.props.BoolProperty(
         default=True,
@@ -86,6 +92,7 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 import_textures=self.import_textures,
                 clear_scene=self.clear_scene,
                 create_collection=self.create_collection,
+                import_audio=self.import_audio,
             )
 
             self.report(
@@ -105,6 +112,7 @@ class ImportStage(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         layout = self.layout
         layout.prop(self, "clear_scene")
         layout.prop(self, "import_textures")
+        layout.prop(self, "import_audio")
         layout.prop(self, "create_collection")
 
 

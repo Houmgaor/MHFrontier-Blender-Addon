@@ -9,6 +9,7 @@ from mhfrontier.stage.stage_container import (
     SegmentType,
     StageSegment,
     detect_segment_type,
+    get_audio_segments,
     get_fmod_segments,
     get_texture_segments,
     is_stage_container,
@@ -175,6 +176,38 @@ class TestGetTextureSegments(unittest.TestCase):
             StageSegment(0, 0, 10, 0, b"", SegmentType.OGG),
         ]
         result = get_texture_segments(segments)
+        self.assertEqual(len(result), 0)
+
+
+class TestGetAudioSegments(unittest.TestCase):
+    """Test audio segment filtering."""
+
+    def test_get_audio_ogg(self):
+        """Test getting OGG audio segments."""
+        segments = [
+            StageSegment(0, 0, 10, 0, b"", SegmentType.OGG),
+            StageSegment(1, 10, 10, 0, b"", SegmentType.FMOD),
+            StageSegment(2, 20, 10, 0, b"", SegmentType.OGG),
+        ]
+        result = get_audio_segments(segments)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].index, 0)
+        self.assertEqual(result[1].index, 2)
+
+    def test_get_audio_excludes_non_audio(self):
+        """Test that non-audio segments are excluded."""
+        segments = [
+            StageSegment(0, 0, 10, 0, b"", SegmentType.PNG),
+            StageSegment(1, 10, 10, 0, b"", SegmentType.DDS),
+            StageSegment(2, 20, 10, 0, b"", SegmentType.FMOD),
+            StageSegment(3, 30, 10, 0, b"", SegmentType.JKR),
+        ]
+        result = get_audio_segments(segments)
+        self.assertEqual(len(result), 0)
+
+    def test_get_audio_empty_list(self):
+        """Test with empty segment list."""
+        result = get_audio_segments([])
         self.assertEqual(len(result), 0)
 
 
