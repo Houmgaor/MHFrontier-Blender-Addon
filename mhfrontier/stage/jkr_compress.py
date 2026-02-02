@@ -86,6 +86,75 @@ class BitWriter:
         return bytes(result)
 
 
+class LZInterleavedWriter:
+    """
+    Writer for LZ77 interleaved format.
+
+    The JPK LZ format interleaves flag bytes with data bytes:
+    - Flag byte contains 8 control bits
+    - Data bytes follow the flag byte in the order they're consumed
+    - When all 8 bits are consumed, next flag byte is read
+
+    The key insight: data bytes are associated with the flag byte that's
+    active when they're read. When bits span flag boundaries, data bytes
+    written BEFORE the boundary go with the old flag, and data bytes
+    written AFTER go with the new flag.
+
+    This matches the decoder's _jpk_bit_lz behavior.
+    """
+
+    def __init__(self):
+        self._output = bytearray()
+        self._flag_bits = []  # Bits for current flag (max 8)
+        self._flag_data = []  # Data bytes for current flag
+
+    def _emit_flag(self) -> None:
+        """Emit current flag byte and its data bytes."""
+        if not self._flag_bits:
+            return
+
+        # Pad to 8 bits
+        while len(self._flag_bits) < 8:
+            self._flag_bits.append(False)
+
+        # Build flag byte (MSB first)
+        flag = 0
+        for i, bit in enumerate(self._flag_bits):
+            if bit:
+                flag |= 1 << (7 - i)
+
+        self._output.append(flag)
+        self._output.extend(self._flag_data)
+        self._flag_bits = []
+        self._flag_data = []
+
+    def write_bit(self, bit: bool) -> None:
+        """
+        Write a control bit.
+
+        If the current flag is full (8 bits), emit it BEFORE adding
+        the new bit. This ensures data bytes are correctly associated
+        with the flag that's active when they're read.
+        """
+        if len(self._flag_bits) >= 8:
+            self._emit_flag()
+        self._flag_bits.append(bit)
+
+    def write_data_byte(self, value: int) -> None:
+        """Write a data byte for the current flag."""
+        self._flag_data.append(value & 0xFF)
+
+    def end_operation(self) -> None:
+        """Mark end of a complete operation. No-op in new design."""
+        # No action needed - flags are emitted automatically when full
+        pass
+
+    def finish(self) -> bytes:
+        """Finish and return the encoded data."""
+        self._emit_flag()
+        return bytes(self._output)
+
+
 class LZEncoder:
     """
     LZ77 compression encoder for JPK files.
@@ -93,11 +162,11 @@ class LZEncoder:
     Ported from ReFrontier JPKEncodeLz.cs
 
     Back-reference encoding cases (matching decoder):
-    - Case 0: length 3-6, offset <= 255 (1 byte)
-    - Case 1: length 2-9, offset <= 8191 (2 bytes)
-    - Case 2: length 10-25 (4-bit length encoding)
-    - Case 3: length >= 26 (1-byte length)
-    - Case 4: Raw byte run (escape sequence)
+    - Case 0: length 3-6, offset <= 255 (1 byte offset)
+    - Case 1: length 2-9, offset <= 8191 (2 bytes: hi/lo)
+    - Case 2: length 10-25 (4-bit length after case 1 header)
+    - Case 3: length >= 26 (1-byte length after case 1 header)
+    - Case 4: Raw byte run (escape sequence for very long runs)
     """
 
     # Sliding window size
@@ -108,7 +177,7 @@ class LZEncoder:
     MAX_MATCH_LONG = 255 + 0x1A  # Case 3 max
 
     def __init__(self):
-        self._writer = BitWriter()
+        self._writer = None
 
     def _find_match(
         self,
@@ -154,29 +223,32 @@ class LZEncoder:
         """
         Encode a literal byte (no back-reference found).
 
-        Format: 0-bit followed by the byte
+        Format: 0-bit followed by the byte as data
         """
         self._writer.write_bit(False)
-        self._writer.write_byte(byte_value)
+        self._writer.write_data_byte(byte_value)
+        self._writer.end_operation()
 
     def _encode_backref(self, offset: int, length: int) -> None:
         """
         Encode a back-reference.
 
         Chooses the most efficient encoding based on offset and length.
+        The offset stored is offset-1 (0-based).
         """
-        # Convert offset to 0-based for encoding (decoder uses offset-1)
+        # Convert offset to 0-based for encoding (decoder uses offset directly then subtracts 1 more)
         offset_enc = offset - 1
 
         # Case 0: length 3-6, offset <= 255
         if 3 <= length <= 6 and offset_enc <= 255:
-            self._writer.write_bit(True)  # 1
+            self._writer.write_bit(True)   # 1
             self._writer.write_bit(False)  # 0
             # 2-bit length encoding: 00=3, 01=4, 10=5, 11=6
             length_enc = length - 3
             self._writer.write_bit(bool(length_enc & 2))
             self._writer.write_bit(bool(length_enc & 1))
-            self._writer.write_byte(offset_enc)
+            self._writer.write_data_byte(offset_enc)
+            self._writer.end_operation()
             return
 
         # Case 1: length 2-9, offset <= 8191
@@ -187,38 +259,52 @@ class LZEncoder:
             length_enc = length - 2
             hi = (length_enc << 5) | ((offset_enc >> 8) & 0x1F)
             lo = offset_enc & 0xFF
-            self._writer.write_byte(hi)
-            self._writer.write_byte(lo)
+            self._writer.write_data_byte(hi)
+            self._writer.write_data_byte(lo)
+            self._writer.end_operation()
             return
 
-        # Case 2: length 10-25
+        # Case 2: length 10-25, offset <= 8191
+        # Format: bits 1,1 + hi,lo (with length_field=0) + bit 0 + 4 bits for length
+        # Length = (4-bit value) + 10, so 4-bit value = length - 10
         if 10 <= length <= 25 and offset_enc <= 8191:
-            self._writer.write_bit(True)  # 1
-            self._writer.write_bit(True)  # 1
-            # hi = (0<<5) | (offset>>8), meaning length field is 0
+            self._writer.write_bit(True)   # 1 - backref
+            self._writer.write_bit(True)   # 1 - not case 0
+            # hi has length_field=0 to trigger Case 2/3 branch
             hi = (offset_enc >> 8) & 0x1F
             lo = offset_enc & 0xFF
-            self._writer.write_byte(hi)
-            self._writer.write_byte(lo)
-            # Then 0-bit followed by 4-bit length
-            self._writer.write_bit(False)
-            length_enc = length - 10  # 0-15 range
-            self._writer.write_bits(length_enc, 4)
+            self._writer.write_data_byte(hi)
+            self._writer.write_data_byte(lo)
+            self._writer.write_bit(False)  # 0 - case 2 (not case 3)
+            # Write 4 bits for length (MSB first)
+            length_enc = length - 10  # 0-15
+            self._writer.write_bit(bool(length_enc & 8))
+            self._writer.write_bit(bool(length_enc & 4))
+            self._writer.write_bit(bool(length_enc & 2))
+            self._writer.write_bit(bool(length_enc & 1))
+            self._writer.end_operation()
             return
 
-        # Case 3: length >= 26 (or fallback for case 2 overflow)
+        # Case 3: length 26-280, offset <= 8191
+        # Format: bits 1,1 + hi,lo (with length_field=0) + bit 1 + length byte
+        # Note: length_enc = 0xFF (255) triggers literal run mode in decoder, so cap at 254
+        # This gives max length of 0x1A + 254 = 280
         if length >= 26 and offset_enc <= 8191:
+            # Cap length to avoid 0xFF which triggers literal run
+            actual_length = min(length, 0x1A + 254)  # Max 280
+
             self._writer.write_bit(True)  # 1
             self._writer.write_bit(True)  # 1
             # hi = (0<<5) | (offset>>8), meaning length field is 0
             hi = (offset_enc >> 8) & 0x1F
             lo = offset_enc & 0xFF
-            self._writer.write_byte(hi)
-            self._writer.write_byte(lo)
+            self._writer.write_data_byte(hi)
+            self._writer.write_data_byte(lo)
             # Then 1-bit followed by length byte
             self._writer.write_bit(True)
-            length_enc = min(length - 0x1A, 255)  # Cap at 255
-            self._writer.write_byte(length_enc)
+            length_enc = actual_length - 0x1A
+            self._writer.write_data_byte(length_enc)
+            self._writer.end_operation()
             return
 
         # Fallback to case 1 with truncated length
@@ -229,12 +315,12 @@ class LZEncoder:
             length_enc = length - 2
             hi = (length_enc << 5) | ((offset_enc >> 8) & 0x1F)
             lo = offset_enc & 0xFF
-            self._writer.write_byte(hi)
-            self._writer.write_byte(lo)
+            self._writer.write_data_byte(hi)
+            self._writer.write_data_byte(lo)
+            self._writer.end_operation()
             return
 
-        # Last resort: emit as literals
-        # This shouldn't happen with WINDOW_SIZE = 8192
+        # Last resort: emit as literals (shouldn't happen with WINDOW_SIZE = 8192)
         raise ValueError(f"Cannot encode back-reference: offset={offset}, length={length}")
 
     def encode(self, data: bytes) -> bytes:
@@ -244,20 +330,28 @@ class LZEncoder:
         :param data: Uncompressed data.
         :return: LZ77 compressed data.
         """
-        self._writer = BitWriter()
+        self._writer = LZInterleavedWriter()
         pos = 0
 
         while pos < len(data):
             offset, length = self._find_match(data, pos)
 
             if length >= self.MIN_MATCH:
-                self._encode_backref(offset, length)
-                pos += length
+                # Encode in chunks if match is very long (max 280 per chunk)
+                while length >= self.MIN_MATCH:
+                    chunk = min(length, 280)
+                    self._encode_backref(offset, chunk)
+                    pos += chunk
+                    length -= chunk
+                    # For subsequent chunks, offset stays same (relative to NEW position)
+                    # Actually we need to re-find match for correct offset
+                    if length >= self.MIN_MATCH:
+                        offset, length = self._find_match(data, pos)
             else:
                 self._encode_literal(data[pos])
                 pos += 1
 
-        return self._writer.flush()
+        return self._writer.finish()
 
 
 class HuffmanEncoder:
@@ -449,9 +543,10 @@ class HFIEncoder:
         # Huffman pass on LZ output
         table_bytes, huffman_data = self._huffman_encoder.encode(lz_compressed)
 
-        # Combine: table_len (int16) + table + huffman data
-        table_len = len(table_bytes) // 2  # Number of int16 entries
-        return struct.pack("<h", table_len) + table_bytes[2:] + huffman_data
+        # Combine: table (starting with root node ID) + huffman data
+        # The decoder expects: [root_id, node_data...] + encoded_data
+        # table_bytes already has this format from _build_tree
+        return table_bytes + huffman_data
 
 
 class HFIRWEncoder:
@@ -471,9 +566,8 @@ class HFIRWEncoder:
         """
         table_bytes, huffman_data = self._huffman_encoder.encode(data)
 
-        # Combine: table_len (int16) + table + huffman data
-        table_len = len(table_bytes) // 2
-        return struct.pack("<h", table_len) + table_bytes[2:] + huffman_data
+        # Combine: table (starting with root node ID) + huffman data
+        return table_bytes + huffman_data
 
 
 def compress_jkr(
