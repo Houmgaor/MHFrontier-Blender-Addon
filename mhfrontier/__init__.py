@@ -29,6 +29,7 @@ if _BLENDER_AVAILABLE:
         fmod_export_op,
         fskl_export_op,
         fmot_export_op,
+        stage_export_op,
     )
 
 
@@ -110,6 +111,13 @@ def register():
     else:
         bpy.types.INFO_MT_file_export.append(fmot_export_op.menu_func_export)
 
+    # Register stage/map export
+    bpy.utils.register_class(stage_export_op.ExportStage)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.append(stage_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.append(stage_export_op.menu_func_export)
+
 
 def unregister():
     """Remove the FMOD/FSKL add-on."""
@@ -168,6 +176,13 @@ def unregister():
         bpy.types.TOPBAR_MT_file_export.remove(fmot_export_op.menu_func_export)
     else:
         bpy.types.INFO_MT_file_export.remove(fmot_export_op.menu_func_export)
+
+    # Unregister stage/map export
+    bpy.utils.unregister_class(stage_export_op.ExportStage)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_export.remove(stage_export_op.menu_func_export)
+    else:
+        bpy.types.INFO_MT_file_export.remove(stage_export_op.menu_func_export)
 
 
 if __name__ == "__main__":
