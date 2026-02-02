@@ -171,7 +171,12 @@ class LZEncoder:
 
     # Sliding window size
     WINDOW_SIZE = 8192  # 8KB window for back-references
-    MIN_MATCH = 2
+    # Minimum match length is 3 because:
+    # - Case 0: 3-6 bytes
+    # - Case 1: 3-9 bytes (length=2 would encode as 0, triggering Case 2/3)
+    # - Case 2: 10-25 bytes
+    # - Case 3: 26+ bytes
+    MIN_MATCH = 3
     MAX_MATCH_SHORT = 9  # Case 1 max
     MAX_MATCH_MED = 25  # Case 2 max
     MAX_MATCH_LONG = 255 + 0x1A  # Case 3 max
@@ -251,8 +256,10 @@ class LZEncoder:
             self._writer.end_operation()
             return
 
-        # Case 1: length 2-9, offset <= 8191
-        if 2 <= length <= 9 and offset_enc <= 8191:
+        # Case 1: length 3-9, offset <= 8191
+        # Note: length=2 would encode as length_field=0, which triggers Case 2/3 in decoder
+        # So Case 1 only supports lengths 3-9 (length_field 1-7)
+        if 3 <= length <= 9 and offset_enc <= 8191:
             self._writer.write_bit(True)  # 1
             self._writer.write_bit(True)  # 1
             # 2-byte encoding: hi byte = (length-2)<<5 | (offset>>8), lo byte = offset&0xFF
