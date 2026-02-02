@@ -34,7 +34,8 @@ def load_fmod_file_from_bytes(
     """
     Load a 3D model with materials from FMOD data bytes.
 
-    A single FMOD file usually contains multiple meshes.
+    A single FMOD file usually contains multiple meshes. Invalid or unexpected
+    blocks are skipped with warnings rather than failing the entire import.
 
     :param data: Raw FMOD file data.
     :param verbose: Print structure info if True.
@@ -45,33 +46,73 @@ def load_fmod_file_from_bytes(
     if verbose:
         _logger.debug("FMOD file structure")
         frontier_file.pretty_print(_logger)
-    for i, datum in enumerate(frontier_file.data[1:4]):
+
+    # Validate top-level structure
+    if not frontier_file.data or len(frontier_file.data) < 4:
+        _logger.warning(
+            "FMOD file has insufficient data blocks: expected 4, found %d",
+            len(frontier_file.data) if frontier_file.data else 0,
+        )
+        return [], []
+
+    # Extract and validate file blocks (indices 1-3: meshes, materials, textures)
+    file_blocks = []
+    for i, datum in enumerate(frontier_file.data[1:4], start=1):
         if not isinstance(datum, fblock.FileBlock):
-            raise TypeError(
-                f"Child {i} should be {fblock.FileBlock.__name__}, "
-                f"found type is {type(datum)}"
+            _logger.warning(
+                "Block %d: expected %s, found %s (skipping)",
+                i,
+                fblock.FileBlock.__name__,
+                type(datum).__name__,
             )
-    meshes = frontier_file.data[1].data
-    for i, mesh in enumerate(meshes):
-        if not isinstance(mesh, fblock.MainBlock):
-            raise TypeError(
-                f"Block type should be {fblock.MainBlock.__name__}, "
-                f"found type is {type(mesh)}"
-            )
-    materials = frontier_file.data[2].data
-    for i, material in enumerate(materials):
-        if not isinstance(material, fblock.MaterialBlock):
-            raise TypeError(
-                f"Block {i} should be {fblock.MaterialBlock.__name__}, "
-                f"found type is {type(frontier_file.data[2].data)}"
-            )
-    textures = frontier_file.data[3].data
-    for i, texture in enumerate(textures):
-        if not isinstance(texture, fblock.TextureBlock):
-            raise TypeError(
-                f"Block {i} should be {fblock.TextureBlock.__name__}, "
-                f"found type is {type(texture)}"
-            )
+            file_blocks.append(None)
+        else:
+            file_blocks.append(datum)
+
+    mesh_block, material_block, texture_block = file_blocks
+
+    # Extract meshes
+    meshes = []
+    if mesh_block and mesh_block.data:
+        for i, mesh in enumerate(mesh_block.data):
+            if not isinstance(mesh, fblock.MainBlock):
+                _logger.warning(
+                    "Mesh %d: expected %s, found %s (skipping)",
+                    i,
+                    fblock.MainBlock.__name__,
+                    type(mesh).__name__,
+                )
+                continue
+            meshes.append(mesh)
+
+    # Extract textures first (needed for materials)
+    textures = []
+    if texture_block and texture_block.data:
+        for i, texture in enumerate(texture_block.data):
+            if not isinstance(texture, fblock.TextureBlock):
+                _logger.warning(
+                    "Texture %d: expected %s, found %s (skipping)",
+                    i,
+                    fblock.TextureBlock.__name__,
+                    type(texture).__name__,
+                )
+                continue
+            textures.append(texture)
+
+    # Extract materials
+    materials = []
+    if material_block and material_block.data:
+        for i, material in enumerate(material_block.data):
+            if not isinstance(material, fblock.MaterialBlock):
+                _logger.warning(
+                    "Material %d: expected %s, found %s (skipping)",
+                    i,
+                    fblock.MaterialBlock.__name__,
+                    type(material).__name__,
+                )
+                continue
+            materials.append(material)
+
     mesh_parts = [fmesh.FMesh(mesh) for mesh in meshes]
     out_materials = [fmat.FMat(material, textures) for material in materials]
     return mesh_parts, out_materials
