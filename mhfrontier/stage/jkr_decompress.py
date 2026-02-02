@@ -28,6 +28,7 @@ class CompressionType(IntEnum):
 
 
 # JKR magic bytes: "JKR\x1A" (little endian: 0x1A524B4A)
+# Note: Same value as FileMagic.JKR in stage_container.py (kept separate to avoid circular import)
 JKR_MAGIC = 0x1A524B4A
 
 

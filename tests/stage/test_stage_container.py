@@ -4,7 +4,8 @@ import struct
 import unittest
 
 from mhfrontier.stage.stage_container import (
-    MAGIC_BYTES,
+    FileMagic,
+    MAGIC_TO_SEGMENT,
     SegmentType,
     StageSegment,
     detect_segment_type,
@@ -177,13 +178,32 @@ class TestGetTextureSegments(unittest.TestCase):
         self.assertEqual(len(result), 0)
 
 
-class TestMagicBytesConsistency(unittest.TestCase):
-    """Test that MAGIC_BYTES dict is consistent."""
+class TestFileMagicEnum(unittest.TestCase):
+    """Test FileMagic enum and MAGIC_TO_SEGMENT mapping."""
 
-    def test_jkr_magic_matches(self):
-        """Test JKR magic in dict matches module constant."""
-        self.assertIn(JKR_MAGIC, MAGIC_BYTES)
-        self.assertEqual(MAGIC_BYTES[JKR_MAGIC], SegmentType.JKR)
+    def test_jkr_magic_matches_constant(self):
+        """Test FileMagic.JKR matches JKR_MAGIC from jkr_decompress."""
+        self.assertEqual(FileMagic.JKR, JKR_MAGIC)
+
+    def test_jkr_magic_in_mapping(self):
+        """Test JKR magic is in the segment mapping."""
+        self.assertIn(FileMagic.JKR, MAGIC_TO_SEGMENT)
+        self.assertEqual(MAGIC_TO_SEGMENT[FileMagic.JKR], SegmentType.JKR)
+
+    def test_all_magic_values_mapped(self):
+        """Test all FileMagic enum values are in MAGIC_TO_SEGMENT."""
+        for magic in FileMagic:
+            self.assertIn(
+                magic,
+                MAGIC_TO_SEGMENT,
+                f"FileMagic.{magic.name} not in MAGIC_TO_SEGMENT",
+            )
+
+    def test_magic_values_are_valid_uint32(self):
+        """Test all magic values fit in uint32."""
+        for magic in FileMagic:
+            self.assertGreaterEqual(magic, 0)
+            self.assertLess(magic, 0x100000000)
 
     def test_all_segment_types_have_extension(self):
         """Test all segment types have valid extensions."""

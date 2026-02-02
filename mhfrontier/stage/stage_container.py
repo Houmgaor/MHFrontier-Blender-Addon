@@ -14,9 +14,24 @@ import struct
 from dataclasses import dataclass
 from enum import IntEnum
 from io import BytesIO
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from .jkr_decompress import is_jkr_file, JKR_MAGIC
+from .jkr_decompress import is_jkr_file
+
+
+class FileMagic(IntEnum):
+    """
+    Magic byte signatures for file type detection.
+
+    These are the first 4 bytes of each file format, read as little-endian uint32.
+    Used to identify segment types within stage containers.
+    """
+
+    JKR = 0x1A524B4A    # "JKR\x1A" - Compressed data (JKR/JPK format)
+    FMOD = 0x444F4D46   # "FMOD" - 3D model data
+    PNG = 0x474E5089    # "\x89PNG" - PNG image (note: reversed due to little-endian)
+    DDS = 0x20534444    # "DDS " - DirectDraw Surface texture
+    OGG = 0x5367674F    # "OggS" - Ogg Vorbis audio
 
 
 class SegmentType(IntEnum):
@@ -29,13 +44,13 @@ class SegmentType(IntEnum):
     OGG = 5         # Audio
 
 
-# Magic bytes for file type detection
-MAGIC_BYTES = {
-    0x1A524B4A: SegmentType.JKR,      # "JKR\x1A"
-    0x444F4D46: SegmentType.FMOD,     # "FMOD"
-    0x474E5089: SegmentType.PNG,      # PNG header
-    0x20534444: SegmentType.DDS,      # "DDS "
-    0x5367674F: SegmentType.OGG,      # "OggS"
+# Magic bytes to segment type mapping
+MAGIC_TO_SEGMENT: Dict[int, SegmentType] = {
+    FileMagic.JKR: SegmentType.JKR,
+    FileMagic.FMOD: SegmentType.FMOD,
+    FileMagic.PNG: SegmentType.PNG,
+    FileMagic.DDS: SegmentType.DDS,
+    FileMagic.OGG: SegmentType.OGG,
 }
 
 
@@ -74,7 +89,7 @@ def detect_segment_type(data: bytes) -> SegmentType:
         return SegmentType.UNKNOWN
 
     magic = struct.unpack("<I", data[:4])[0]
-    return MAGIC_BYTES.get(magic, SegmentType.UNKNOWN)
+    return MAGIC_TO_SEGMENT.get(magic, SegmentType.UNKNOWN)
 
 
 def parse_stage_container(data: bytes) -> List[StageSegment]:

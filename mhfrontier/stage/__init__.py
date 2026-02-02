@@ -8,7 +8,7 @@ placement data.
 """
 
 from .jkr_decompress import decompress_jkr, JKRHeader, CompressionType
-from .stage_container import parse_stage_container, StageSegment
+from .stage_container import parse_stage_container, StageSegment, SegmentType, FileMagic
 
 __all__ = [
     "decompress_jkr",
@@ -16,4 +16,6 @@ __all__ = [
     "CompressionType",
     "parse_stage_container",
     "StageSegment",
+    "SegmentType",
+    "FileMagic",
 ]
