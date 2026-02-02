@@ -6,17 +6,26 @@ Created on Wed Mar  6 13:38:47 2019
 
 @author: AsteriskAmpersand
 """
-import bpy
-
-from .operators import (
-    fmod_import,
-    fskl_import,
-    fskl_convert,
-    stage_import,
-)
 from .logging_config import get_logger
 
 _logger = get_logger()
+
+# bpy is only available when running inside Blender.
+# Guard it to allow importing parsing modules for testing.
+try:
+    import bpy
+
+    _BLENDER_AVAILABLE = True
+except ImportError:
+    _BLENDER_AVAILABLE = False
+
+if _BLENDER_AVAILABLE:
+    from .operators import (
+        fmod_import,
+        fskl_import,
+        fskl_convert,
+        stage_import,
+    )
 
 
 content = bytes("", "UTF-8")
