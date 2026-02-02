@@ -6,7 +6,18 @@ from ..common import standard_structures
 
 
 class FBone:
-    """Simple Frontier bone definition."""
+    """
+    Frontier bone with SRT (Scale-Rotation-Translation) transform.
+
+    Attributes:
+        nodeID: Bone identifier
+        parentID: Parent bone ID (-1 for root)
+        leftChild, rightSibling: Tree navigation
+        scale: Local scale [x, y, z, w] (usually [1,1,1,1])
+        rotation: Rotation quaternion [x, y, z, w] (usually identity)
+        position: Local translation [x, y, z, w]
+        chainID: IK chain identifier
+    """
 
     def __init__(self, frontier_bone):
         """
@@ -22,13 +33,16 @@ class FBone:
                 f"type is {type(source)}"
             )
 
-        self.nodeID = frontier_bone.data[0].nodeID
-        self.parentID = frontier_bone.data[0].parentID
-        self.leftChild = frontier_bone.data[0].leftChild
-        self.rightSibling = frontier_bone.data[0].rightSibling
-        self.vec1 = frontier_bone.data[0].vec1
-        self.vec2 = frontier_bone.data[0].vec2
-        self.posVec = frontier_bone.data[0].posVec
-        self.null = frontier_bone.data[0].null
-        self.chainID = frontier_bone.data[0].chainID
-        self.unkn2 = frontier_bone.data[0].unkn2
+        self.nodeID = source.nodeID
+        self.parentID = source.parentID
+        self.leftChild = source.leftChild
+        self.rightSibling = source.rightSibling
+        self.scale = source.scale
+        self.rotation = source.rotation
+        self.position = source.position
+        self.chainID = source.chainID
+
+        # Legacy aliases for backward compatibility
+        self.vec1 = source.scale
+        self.vec2 = source.rotation
+        self.posVec = source.position

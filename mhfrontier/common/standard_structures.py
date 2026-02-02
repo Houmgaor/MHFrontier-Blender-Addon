@@ -128,30 +128,42 @@ class WeightData(PyCStruct):
 
 
 class BoneBlock(PyCStruct):
+    """
+    Bone transformation data in SRT (Scale-Rotation-Translation) format.
+
+    Fields:
+    - nodeID, parentID, leftChild, rightSibling: Tree structure navigation
+    - scale: Local scale [scaleX, scaleY, scaleZ, 1.0] (usually identity [1,1,1,1])
+    - rotation: Rotation quaternion [x, y, z, w] (usually identity [0,0,0,1])
+    - position: Local translation [x, y, z, 1.0]
+    - sentinel: Always 0xFFFFFFFF, unused marker
+    - chainID: IK chain identifier
+    - reserved: 184 bytes of padding (always zeros in analyzed files)
+    """
 
     def __init__(self):
         self.nodeID = None
         self.parentID = None
         self.leftChild = None
         self.rightSibling = None
-        self.vec1 = None
-        self.vec2 = None
-        self.posVec = None
-        self.null = None
+        self.scale = None
+        self.rotation = None
+        self.position = None
+        self.sentinel = None
         self.chainID = None
-        self.unkn2 = None
+        self.reserved = None
         fields = OrderedDict(
             [
                 ("nodeID", "int32"),
                 ("parentID", "int32"),
                 ("leftChild", "int32"),
                 ("rightSibling", "int32"),
-                ("vec1", "float[4]"),
-                ("vec2", "float[4]"),
-                ("posVec", "float[4]"),
-                ("null", "uint32"),
+                ("scale", "float[4]"),
+                ("rotation", "float[4]"),
+                ("position", "float[4]"),
+                ("sentinel", "uint32"),
                 ("chainID", "uint32"),
-                ("unkn2", "uint32[46]"),
+                ("reserved", "uint32[46]"),
             ]
         )
         super().__init__(fields)
@@ -161,18 +173,31 @@ class BoneBlock(PyCStruct):
 
 
 class TextureData(PyCStruct):
+    """
+    Texture metadata header.
+
+    Contains texture identification and dimensions. The reserved field
+    (244 bytes) is typically all zeros for standard textures. Non-zero
+    values have been observed in some files and may contain:
+    - Mipmap count or format flags
+    - Stride/pitch information for unusual aspect ratios
+    - Platform-specific texture metadata
+
+    Most textures (91% in analyzed files) have all-zero reserved data.
+    """
+
     def __init__(self):
         self.imageID = None
         self.width = None
         self.height = None
-        self.unkn = None
+        self.reserved = None
 
         fields = OrderedDict(
             [
                 ("imageID", "uint32"),
                 ("width", "uint32"),
                 ("height", "uint32"),
-                ("unkn", "byte[244]"),
+                ("reserved", "byte[244]"),
             ]
         )
         super().__init__(fields)
@@ -195,6 +220,16 @@ class FBlockHeader(PyCStruct):
 
 
 class MaterialHeader(PyCStruct):
+    """
+    Material header structure (UNUSED).
+
+    This structure was reverse-engineered but is not currently used in the
+    import pipeline. It may represent an alternative material format or
+    version. Kept for reference and potential future use.
+
+    Fields unkn3-unkn9 likely represent material color properties similar
+    to MaterialData.
+    """
 
     def __init__(self):
         self.unkn1 = None
@@ -239,6 +274,17 @@ class MaterialHeader(PyCStruct):
 
 
 class MaterialChannelMapping(PyCStruct):
+    """
+    Material texture channel mapping (UNUSED).
+
+    Maps texture slots to material channels. Contains useful named fields:
+    - TextureLinkDif: Diffuse texture index
+    - TextureLinkNor: Normal map texture index (if blocksize > 272)
+    - TextureLinkSpe: Specular texture index (if blocksize > 272)
+
+    Not currently used in the import pipeline. Kept for reference.
+    """
+
     def __init__(self, blocksize):
         self.unkn = None
         self.TextureLinkDif = None
@@ -274,29 +320,39 @@ class TextureIndex(PyCStruct):
 
 
 class MaterialData(PyCStruct):
+    """
+    Material properties structure.
+
+    Contains color and shading properties for a material:
+    - ambientColor: RGB ambient light response (float[3], 0.0-1.0)
+    - opacity: Material transparency/alpha (float, 0.0=transparent, 1.0=opaque)
+    - diffuseColor: RGB diffuse/base color (float[3], 0.0-1.0)
+    - specularColor: RGBA specular highlight color with intensity (float[4])
+    - materialFlags: Render mode/blend flags (uint32)
+    - shininess: Specular power/glossiness (float)
+    - textureCount: Number of textures assigned to this material
+    - reserved: Extended material data, mostly zeros (byte[200])
+    """
 
     def __init__(self):
-        self.unkn3 = None
-        self.unkn6 = None
-        self.unkn7 = None
-        self.float4 = None
-        self.unkn8 = None
-        self.unkn9 = None
+        self.ambientColor = None
+        self.opacity = None
+        self.diffuseColor = None
+        self.specularColor = None
+        self.materialFlags = None
+        self.shininess = None
         self.textureCount = None
-        self.unkn = None
+        self.reserved = None
         fields = OrderedDict(
             [
-                # ("unkn1" , "uint32"),
-                # ("unkn2" , "uint32"),
-                # ("blockSize" , "uint32"),
-                ("unkn3", "float[3]"),
-                ("unkn6", "float"),
-                ("unkn7", "float[3]"),
-                ("float4", "float[4]"),
-                ("unkn8", "uint32"),
-                ("unkn9", "float"),
+                ("ambientColor", "float[3]"),
+                ("opacity", "float"),
+                ("diffuseColor", "float[3]"),
+                ("specularColor", "float[4]"),
+                ("materialFlags", "uint32"),
+                ("shininess", "float"),
                 ("textureCount", "uint32"),
-                ("unkn", "byte[200]"),
+                ("reserved", "byte[200]"),
             ]
         )
 
