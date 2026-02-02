@@ -48,6 +48,7 @@ class MockObject:
     show_in_front: bool = False
     show_bounds: bool = False
     linked_to_scene: bool = False
+    users_collection: List["MockCollection"] = field(default_factory=list)
 
 
 @dataclass
@@ -102,6 +103,15 @@ class MockCollection:
 
     name: str
     objects: List[MockObject] = field(default_factory=list)
+
+
+@dataclass
+class MockSound:
+    """Mock sound data structure."""
+
+    filepath: str
+    name: str = ""
+    packed: bool = False
 
 
 @dataclass
@@ -337,6 +347,9 @@ class MockSceneManager(SceneManager):
         self.render_engine: str = ""
         self.collections: List[MockCollection] = []
         self.scene_collections: List[MockCollection] = []
+        self.sounds: List[MockSound] = []
+        self.images: List[MockImage] = []
+        self.scene_cleared: bool = False
 
     def set_render_engine(self, engine: str) -> None:
         self.render_engine = engine
@@ -353,6 +366,31 @@ class MockSceneManager(SceneManager):
         self, obj: MockObject, collection: MockCollection
     ) -> None:
         collection.objects.append(obj)
+        obj.users_collection.append(collection)
+
+    def unlink_object_from_collections(self, obj: MockObject) -> None:
+        for coll in obj.users_collection:
+            if obj in coll.objects:
+                coll.objects.remove(obj)
+        obj.users_collection.clear()
+
+    def clear_scene(self) -> None:
+        self.collections.clear()
+        self.scene_collections.clear()
+        self.sounds.clear()
+        self.images.clear()
+        self.scene_cleared = True
+
+    def load_sound(self, filepath: str) -> MockSound:
+        sound = MockSound(filepath=filepath, name=filepath.split("/")[-1])
+        self.sounds.append(sound)
+        return sound
+
+    def pack_sound(self, sound: MockSound) -> None:
+        sound.packed = True
+
+    def set_sound_name(self, sound: MockSound, name: str) -> None:
+        sound.name = name
 
 
 class MockMatrixFactory(MatrixFactory):

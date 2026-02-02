@@ -394,6 +394,53 @@ class SceneManager(ABC):
         """
         ...
 
+    @abstractmethod
+    def unlink_object_from_collections(self, obj: Any) -> None:
+        """
+        Unlink an object from all its current collections.
+
+        :param obj: Object to unlink.
+        """
+        ...
+
+    @abstractmethod
+    def clear_scene(self) -> None:
+        """
+        Clear all objects, images, and custom properties from the scene.
+
+        This is a destructive operation that removes everything.
+        """
+        ...
+
+    @abstractmethod
+    def load_sound(self, filepath: str) -> Any:
+        """
+        Load a sound file into Blender.
+
+        :param filepath: Path to the sound file.
+        :return: Loaded sound object.
+        """
+        ...
+
+    @abstractmethod
+    def pack_sound(self, sound: Any) -> None:
+        """
+        Pack sound data into the blend file.
+
+        :param sound: Sound object to pack.
+        """
+        ...
+
+    @abstractmethod
+    def set_sound_name(self, sound: Any, name: str) -> None:
+        """
+        Set the name of a sound object.
+
+        :param sound: Sound object to rename.
+        :param name: New name for the sound.
+        """
+        ...
+
 
 class MatrixFactory(ABC):
     """Abstract interface for matrix operations."""

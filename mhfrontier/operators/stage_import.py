@@ -11,7 +11,7 @@ from pathlib import Path
 import bpy
 import bpy_extras
 
-from ..fmod import stage_importer_layer
+from ..fmod import stage_importer_layer, fmod_importer_layer
 from ..logging_config import get_logger
 
 _logger = get_logger("operators")
@@ -167,7 +167,7 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         bpy.ops.object.select_all(action="DESELECT")
 
         if self.clear_scene:
-            stage_importer_layer.fmod_importer_layer.clear_scene()
+            fmod_importer_layer.clear_scene()
 
         directory = Path(self.directory)
         total_objects = 0
@@ -175,8 +175,11 @@ class ImportStageDirect(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Create a collection for all imports
         collection = None
         if self.create_collection:
-            collection = bpy.data.collections.new(directory.name)
-            bpy.context.scene.collection.children.link(collection)
+            from ..blender.blender_impl import get_scene_manager
+
+            scene_manager = get_scene_manager()
+            collection = scene_manager.create_collection(directory.name)
+            scene_manager.link_collection_to_scene(collection)
 
         for file_elem in self.files:
             filepath = directory / file_elem.name

@@ -239,6 +239,30 @@ class BlenderSceneManager(SceneManager):
     ) -> None:
         collection.objects.link(obj)
 
+    def unlink_object_from_collections(self, obj: bpy.types.Object) -> None:
+        for coll in obj.users_collection:
+            coll.objects.unlink(obj)
+
+    def clear_scene(self) -> None:
+        # Delete scene custom properties
+        for key in list(bpy.context.scene.keys()):
+            del bpy.context.scene[key]
+        # Select all and delete
+        bpy.ops.object.select_all(action="SELECT")
+        bpy.ops.object.delete()
+        # Remove all images
+        for img_name in list(bpy.data.images.keys()):
+            bpy.data.images.remove(bpy.data.images[img_name])
+
+    def load_sound(self, filepath: str) -> bpy.types.Sound:
+        return bpy.data.sounds.load(filepath)
+
+    def pack_sound(self, sound: bpy.types.Sound) -> None:
+        sound.pack()
+
+    def set_sound_name(self, sound: bpy.types.Sound, name: str) -> None:
+        sound.name = name
+
 
 class BlenderMatrixFactory(MatrixFactory):
     """Concrete matrix factory using mathutils."""
