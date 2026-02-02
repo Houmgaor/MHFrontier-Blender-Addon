@@ -7,13 +7,21 @@ Handles texture discovery, loading, and material setup with shader nodes.
 
 import os
 from pathlib import Path
+from typing import Dict, List, TYPE_CHECKING
 
 import bpy
 
 from ..blender import blender_nodes_functions as bnf
 
+if TYPE_CHECKING:
+    from .fmat import FMat
 
-def import_textures(materials, path, blender_materials):
+
+def import_textures(
+    materials: List["FMat"],
+    path: str,
+    blender_materials: Dict[int, bpy.types.Material],
+) -> None:
     """
     Import textures from the file system and assign to materials.
 
@@ -21,10 +29,8 @@ def import_textures(materials, path, blender_materials):
     around the model file.
 
     :param materials: Materials data with texture IDs.
-    :type materials: list[mhfrontier.fmod.fmat.FMat]
-    :param str path: Path to the FMOD file.
-    :param blender_materials: Dictionary of Blender materials.
-    :type blender_materials: dict[int, bpy.types.Material]
+    :param path: Path to the FMOD file (for texture search).
+    :param blender_materials: Dictionary of Blender materials by ID.
     """
     for ix, mat in blender_materials.items():
         # Setup material for nodes
@@ -76,7 +82,7 @@ def import_textures(materials, path, blender_materials):
         bnf.finish_setup(node_tree, next(setup))
 
 
-def find_all_textures(path):
+def find_all_textures(path: str) -> List[str]:
     """
     Find all texture files in the directory hierarchy around a model file.
 
@@ -85,9 +91,8 @@ def find_all_textures(path):
     2. Child directories (sorted alphabetically)
     3. Sibling directories (sorted alphabetically)
 
-    :param str path: Path to the model file.
-    :return: List of texture file paths.
-    :rtype: list[str]
+    :param path: Path to the model file.
+    :return: List of texture file paths as strings.
     """
     model_path = Path(path)
     in_children = [
@@ -105,21 +110,20 @@ def find_all_textures(path):
         *sorted(in_children),
         *sorted(in_parents),
     ]
-    output = []
+    output: List[str] = []
     for directory in directories:
         current = sorted(list(directory.rglob("*.png")))
         output.extend(file.resolve().as_posix() for file in current)
     return output
 
 
-def search_textures(path, ix):
+def search_textures(path: str, ix: int) -> str:
     """
     Find a specific texture by index from the available textures.
 
-    :param str path: Initial file path (used for texture discovery).
-    :param int ix: Texture index to retrieve.
+    :param path: Initial file path (used for texture discovery).
+    :param ix: Texture index to retrieve.
     :return: Path to the texture file.
-    :rtype: str
     :raises IndexError: If the index exceeds available textures.
     """
     textures = find_all_textures(path)
@@ -130,26 +134,24 @@ def search_textures(path, ix):
     return textures[ix]
 
 
-def get_texture(path, local_index):
+def get_texture(path: str, local_index: int) -> bpy.types.Image:
     """
     Load a specific texture by index.
 
-    :param str path: Path to look for the texture.
-    :param int local_index: Texture index.
+    :param path: Path to look for the texture.
+    :param local_index: Texture index.
     :return: Loaded Blender image.
-    :rtype: bpy.types.Image
     """
     filepath = search_textures(path, local_index)
     return fetch_texture(filepath)
 
 
-def fetch_texture(filepath):
+def fetch_texture(filepath: str) -> bpy.types.Image:
     """
     Load a texture from the file system.
 
-    :param str filepath: Path to the texture file.
+    :param filepath: Path to the texture file.
     :return: Loaded Blender image.
-    :rtype: bpy.types.Image
     :raises FileNotFoundError: If the file does not exist.
     """
     if os.path.exists(filepath):
@@ -157,14 +159,16 @@ def fetch_texture(filepath):
     raise FileNotFoundError("File %s not found" % filepath)
 
 
-def assign_texture(mesh_object, texture_data):
+def assign_texture(
+    mesh_object: bpy.types.Object, texture_data: bpy.types.Image
+) -> None:
     """
     Assign a texture to all UV layers of a mesh (Blender 2.7x style).
 
     Note: This function is for legacy Blender versions that use uv_textures.
 
-    :param bpy.types.Object mesh_object: Object to assign texture to.
-    :param bpy.types.Image texture_data: Texture image to assign.
+    :param mesh_object: Object to assign texture to.
+    :param texture_data: Texture image to assign.
     """
     for uv_layer in mesh_object.data.uv_textures:
         for uv_tex_face in uv_layer.data:

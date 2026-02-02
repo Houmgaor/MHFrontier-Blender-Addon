@@ -3,19 +3,36 @@ Frontier material file.
 """
 
 import warnings
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import fblock
 
 
 class FMat:
-    """Load a Frontier material file."""
+    """
+    Frontier material with texture references.
 
-    def __init__(self, mat_block, textures):
+    Attributes:
+        diffuse_id: Image ID for diffuse/albedo texture (or None).
+        normal_id: Image ID for normal map texture (or None).
+        specular_id: Image ID for specular/roughness texture (or None).
+    """
+
+    diffuse_id: Optional[int]
+    normal_id: Optional[int]
+    specular_id: Optional[int]
+
+    def __init__(
+        self,
+        mat_block: "fblock.MaterialBlock",
+        textures: List["fblock.TextureBlock"],
+    ) -> None:
         """
-        Load the data to the corresponding values.
+        Create a material from block data.
 
-        :param mat_block: Material, contains destination data.
-        :type mat_block: mhfrontier.fmod.fblock.MaterialBlock
-        :param textures: Information on texture to assign.
-        :type textures: list[mhfrontier.fmod.fblock.TextureBlock]
+        :param mat_block: Material block containing texture indices.
+        :param textures: List of texture blocks for ID lookup.
         """
         self.diffuse_id = None
         self.normal_id = None

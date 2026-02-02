@@ -2,7 +2,12 @@
 Definition of a Frontier bone.
 """
 
+from typing import List, TYPE_CHECKING
+
 from ..common import standard_structures
+
+if TYPE_CHECKING:
+    from . import fblock
 
 
 class FBone:
@@ -10,21 +15,31 @@ class FBone:
     Frontier bone with SRT (Scale-Rotation-Translation) transform.
 
     Attributes:
-        nodeID: Bone identifier
-        parentID: Parent bone ID (-1 for root)
-        leftChild, rightSibling: Tree navigation
-        scale: Local scale [x, y, z, w] (usually [1,1,1,1])
-        rotation: Rotation quaternion [x, y, z, w] (usually identity)
-        position: Local translation [x, y, z, w]
-        chainID: IK chain identifier
+        nodeID: Bone identifier.
+        parentID: Parent bone ID (-1 for root).
+        leftChild: Left child bone ID in the tree.
+        rightSibling: Right sibling bone ID in the tree.
+        scale: Local scale [x, y, z, w] (usually [1, 1, 1, 1]).
+        rotation: Rotation quaternion [x, y, z, w] (usually identity).
+        position: Local translation [x, y, z, w].
+        chainID: IK chain identifier.
     """
 
-    def __init__(self, frontier_bone):
-        """
-        Create the bone.
+    nodeID: int
+    parentID: int
+    leftChild: int
+    rightSibling: int
+    scale: List[float]
+    rotation: List[float]
+    position: List[float]
+    chainID: int
 
-        :param frontier_bone: Input bone to parse
-        :type frontier_bone: mhfrontier.fmod.fblock.FBlock
+    def __init__(self, frontier_bone: "fblock.FBlock") -> None:
+        """
+        Create a bone from block data.
+
+        :param frontier_bone: Block containing bone data.
+        :raises TypeError: If the block doesn't contain BoneBlock data.
         """
         source = frontier_bone.data[0]
         if not isinstance(source, standard_structures.BoneBlock):

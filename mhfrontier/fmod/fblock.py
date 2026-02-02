@@ -7,8 +7,12 @@ Created on Thu Apr 04 13:57:02 2019
 """
 
 import abc
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
 from ..common import data_containers, filelike, standard_structures
+
+if TYPE_CHECKING:
+    from ..common.filelike import FileLike
 
 
 class FBlock(abc.ABC):
@@ -16,23 +20,33 @@ class FBlock(abc.ABC):
     Frontier data Block.
 
     Generic block with a recursive structure.
+
+    Attributes:
+        header: Block header with type and size info.
+        data: List of child blocks or data.
+        parent: Parent block (or None for root).
     """
 
-    def __init__(self, parent=None):
-        """Define block from parent with empty data."""
+    header: "standard_structures.FBlockHeader"
+    data: Optional[List[Any]]
+    parent: Optional["FBlock"]
 
+    def __init__(self, parent: Optional["FBlock"] = None) -> None:
+        """
+        Create a block with empty data.
+
+        :param parent: Parent block in the hierarchy.
+        """
         self.header = standard_structures.FBlockHeader()
         self.data = None
         self.parent = parent
 
-    def marshall(self, data):
+    def marshall(self, data: "FileLike") -> None:
         """
-        Assign the values to the data block.
+        Parse block data from a file-like stream.
 
-        :param data: Data to read.
-        :type data: mhfrontier.common.filelike.FileLike
+        :param data: Stream to read from.
         """
-
         self.header.marshall(data)
         # Read header only
         sub_data = filelike.FileLike(
@@ -42,22 +56,23 @@ class FBlock(abc.ABC):
         for datum in self.data:
             datum.marshall(sub_data)
 
-    def pretty_print(self, indents=0):
+    def pretty_print(self, indents: int = 0) -> None:
         """
-        Nice display of the block and its hierarchy in the console.
+        Print the block hierarchy to console.
 
-        :param int indents: Number of indentation to set.
+        :param indents: Current indentation level.
         """
         name = type(self.get_type()).__name__
         print("\t" * indents + f"{name}: {self.header.count} \t{hex(self.header.type)}")
         for datum in self.data:
             datum.pretty_print(indents + 1)
 
-    def get_type(self):
+    def get_type(self) -> Any:
+        """Get an instance of the block type for this header."""
         return fblock_type_lookup(self.header.type)()
 
 
-def _build_block_type_map():
+def _build_block_type_map() -> Dict[int, Type[Any]]:
     """Build the block type lookup map. Called after classes are defined."""
     return {
         # Structural blocks
@@ -87,81 +102,103 @@ def _build_block_type_map():
 
 
 # Initialized after class definitions (see end of module)
-BLOCK_TYPE_MAP = {}
+BLOCK_TYPE_MAP: Dict[int, Type[Any]] = {}
 
 
-def fblock_type_lookup(value):
+def fblock_type_lookup(value: int) -> Type[Any]:
     """
     Return the block class corresponding to a type ID.
 
-    :param int value: Block type identifier.
+    :param value: Block type identifier.
     :return: Block class for the given type, or UnknBlock if unknown.
     """
     return BLOCK_TYPE_MAP.get(value, UnknBlock)
 
 
 class FileBlock(FBlock):
+    """Top-level file block containing other blocks."""
     pass
 
 
 class MainBlock(FBlock):
+    """Main block containing mesh data."""
     pass
 
 
 class ObjectBlock(FBlock):
+    """Object block containing geometry components."""
     pass
 
 
 class FaceBlock(FBlock):
+    """Face block containing triangle strip data."""
     pass
 
 
 class SkeletonBlock(FBlock):
+    """Skeleton block containing bone hierarchy."""
     pass
 
 
 class SimpleFBlock(FBlock):
+    """Block that contains simple structured data."""
 
-    def __init__(self, struct_type):
+    struct_type: Type[Any]
+
+    def __init__(self, struct_type: Type[Any]) -> None:
         """
+        Create a simple block with a specific structure type.
 
-        :param struct_type: Structure to use
-        :type struct_type: Type[mhfrontier.common.pycstruct]
+        :param struct_type: The structure class to use for data.
         """
         self.struct_type = struct_type
         super().__init__()
 
-    def get_type(self):
+    def get_type(self) -> Any:
+        """Get an instance of the struct type."""
         return self.struct_type()
 
-    def pretty_print(self, indents=0):
+    def pretty_print(self, indents: int = 0) -> None:
+        """Simple blocks don't print their contents."""
         pass
 
 
 class TextureBlock(SimpleFBlock):
-    def __init__(self):
+    """Block containing texture metadata."""
+
+    def __init__(self) -> None:
         super().__init__(standard_structures.TextureData)
 
 
 class MaterialBlock(SimpleFBlock):
-    def __init__(self):
+    """Block containing material data."""
+
+    def __init__(self) -> None:
         super().__init__(standard_structures.MaterialData)
 
 
 class InitBlock(FBlock):
-    def marshall(self, data):
+    """Initialization block with file metadata."""
+
+    def marshall(self, data: "FileLike") -> None:
+        """Parse init data from stream."""
         self.data = standard_structures.InitData()
         self.data.marshall(data)
 
-    def pretty_print(self, indents=0):
+    def pretty_print(self, indents: int = 0) -> None:
+        """Init blocks don't print their contents."""
         pass
 
 
 class UnknBlock(FBlock):
-    def marshall(self, data):
+    """Unknown block type - stores raw data."""
+
+    def marshall(self, data: "FileLike") -> None:
+        """Store raw data without parsing."""
         self.data = data
 
-    def pretty_print(self, indents=0):
+    def pretty_print(self, indents: int = 0) -> None:
+        """Unknown blocks don't print their contents."""
         pass
 
 

@@ -7,22 +7,27 @@ This module is Blender-dependent but format-agnostic.
 """
 
 import array
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 
 import bpy
 import bmesh
 
+if TYPE_CHECKING:
+    from .fmesh import FMesh
 
-def import_mesh(index, mesh, blender_materials):
+
+def import_mesh(
+    index: int,
+    mesh: "FMesh",
+    blender_materials: Dict[int, bpy.types.Material],
+) -> bpy.types.Object:
     """
     Import a mesh part into Blender.
 
-    :param int index: Mesh index
+    :param index: Mesh index for naming.
     :param mesh: FMesh with geometry data.
-    :type mesh: mhfrontier.fmod.fmesh.FMesh
     :param blender_materials: Materials associated with the mesh.
-    :type blender_materials: dict[int, bpy.types.Material]
     :return: The created Blender object.
-    :rtype: bpy.types.Object
     """
     bpy.ops.object.select_all(action="DESELECT")
 
@@ -59,38 +64,37 @@ def import_mesh(index, mesh, blender_materials):
     return blender_object
 
 
-def create_mesh(name, vertices, faces):
+def create_mesh(
+    name: str,
+    vertices: List[Tuple[float, float, float]],
+    faces: List[List[int]],
+) -> bpy.types.Mesh:
     """
     Create a new Blender mesh from vertices and faces.
 
-    :param str name: Name for the mesh
-    :param vertices: Vertices to assign, will be scaled and axis-remapped
-    :type vertices: list[tuple[float, float, float]]
-    :param list[tuple] faces: List of faces
-
-    :return: Mesh for Blender.
-    :rtype: bpy.types.Mesh
+    :param name: Name for the mesh.
+    :param vertices: Vertices to assign, will be scaled and axis-remapped.
+    :param faces: List of faces as vertex index lists.
+    :return: Created Blender mesh.
     """
     blender_mesh = bpy.data.meshes.new(name)
     # Change scale (1/100) and swap Y/Z axes for Blender coordinate system
-    transformed_vertices = [tuple() for _ in vertices]
+    transformed_vertices: List[Tuple[float, float, float]] = [tuple() for _ in vertices]  # type: ignore
     for i, vertex in enumerate(vertices):
         scaled = tuple(v / 100 for v in vertex)
-        transformed_vertices[i] = scaled[0], scaled[2], scaled[1]
+        transformed_vertices[i] = (scaled[0], scaled[2], scaled[1])
     blender_mesh.from_pydata(transformed_vertices, [], faces)
     blender_mesh.update()
     return blender_mesh
 
 
-def create_blender_object(name, blender_mesh):
+def create_blender_object(name: str, blender_mesh: bpy.types.Mesh) -> bpy.types.Object:
     """
     Create a new Blender object with a linked mesh.
 
-    :param str name: Name for the object
-    :param bpy.types.Mesh blender_mesh: Associated blender mesh.
-
-    :return: A new Blender object with mesh set.
-    :rtype: bpy.types.Object
+    :param name: Name for the object.
+    :param blender_mesh: Mesh to link.
+    :return: Created Blender object.
     """
     blender_object = bpy.data.objects.new(name, blender_mesh)
     # Blender 2.8+
@@ -103,17 +107,20 @@ def create_blender_object(name, blender_mesh):
 
 
 def create_texture_layer(
-    blender_mesh, uv, material_list, face_materials, blender_materials
-):
+    blender_mesh: bpy.types.Mesh,
+    uv: List[List[float]],
+    material_list: List[int],
+    face_materials: List[int],
+    blender_materials: Dict[int, bpy.types.Material],
+) -> None:
     """
     Assign UV mapping and materials to a mesh.
 
-    :param bpy.types.Mesh blender_mesh: Mesh to use.
-    :param list[tuple] uv: UV coordinates per vertex
-    :param list[int] material_list: List of material indices
-    :param list[int] face_materials: Material index for each face
-    :param blender_materials: Blender materials already existing.
-    :type blender_materials: dict[int, bpy.types.Material]
+    :param blender_mesh: Mesh to modify.
+    :param uv: UV coordinates per vertex.
+    :param material_list: List of material IDs.
+    :param face_materials: Material index for each face.
+    :param blender_materials: Blender material objects by ID.
     """
     # Add the materials to the mesh
     for mat_id in material_list:
@@ -137,12 +144,12 @@ def create_texture_layer(
     blender_mesh.update()
 
 
-def set_normals(normals, mesh_part):
+def set_normals(normals: List[List[float]], mesh_part: bpy.types.Mesh) -> None:
     """
     Set custom normals on a mesh.
 
-    :param list[tuple[float, float, float]] normals: Normals per vertex
-    :param bpy.types.Mesh mesh_part: Mesh to set normals on.
+    :param normals: Normal vectors per vertex.
+    :param mesh_part: Mesh to set normals on.
     """
     mesh_part.update(calc_edges=True)
 
@@ -162,13 +169,17 @@ def set_normals(normals, mesh_part):
         mesh_part.show_edge_sharp = True
 
 
-def set_weights(weights, remap, mesh_obj):
+def set_weights(
+    weights: Dict[int, List[Tuple[int, float]]],
+    remap: List[int],
+    mesh_obj: bpy.types.Object,
+) -> None:
     """
     Set vertex weights for skeletal animation.
 
-    :param dict weights: Dict of (bone_id, group_number) to identify each bone.
-    :param list remap: Mapping of group ID for each bone_id.
-    :param bpy.types.Object mesh_obj: Blender object with vertex groups.
+    :param weights: Dict of bone_id -> [(vertex_id, weight)].
+    :param remap: Mapping of local bone indices to skeleton IDs.
+    :param mesh_obj: Blender object to add vertex groups to.
     """
     for mesh_bone_ix, group in weights.items():
         group_ix = remap[mesh_bone_ix]

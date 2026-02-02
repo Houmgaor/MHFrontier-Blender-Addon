@@ -6,32 +6,36 @@ Created on Fri Apr  5 23:03:36 2019
 @author: AsteriskAmpersand
 """
 
-from ..fmod import fblock, fmat, fmesh
+from typing import List, Tuple
+
+from . import fblock, fmat, fmesh
 from ..common import filelike
 
 
-def load_fmod_file(file_path):
+def load_fmod_file(file_path: str) -> Tuple[List["fmesh.FMesh"], List["fmat.FMat"]]:
     """
     Load a 3D models with materials from an FMOD file.
 
     A single FMOD file usually contains multiple meshes.
 
-    :param str file_path: FMOD file to read.
-    :return tuple[list[FMesh], list[FMat]]: List of meshes and associated materials
+    :param file_path: FMOD file to read.
+    :return: Tuple of (list of meshes, list of materials)
     """
-    with open(file_path, "rb") as modelFile:
-        return load_fmod_file_from_bytes(modelFile.read())
+    with open(file_path, "rb") as model_file:
+        return load_fmod_file_from_bytes(model_file.read())
 
 
-def load_fmod_file_from_bytes(data, verbose=True):
+def load_fmod_file_from_bytes(
+    data: bytes, verbose: bool = True
+) -> Tuple[List["fmesh.FMesh"], List["fmat.FMat"]]:
     """
     Load a 3D model with materials from FMOD data bytes.
 
     A single FMOD file usually contains multiple meshes.
 
-    :param bytes data: Raw FMOD file data.
-    :param bool verbose: Print structure info if True.
-    :return tuple[list[FMesh], list[FMat]]: List of meshes and associated materials
+    :param data: Raw FMOD file data.
+    :param verbose: Print structure info if True.
+    :return: Tuple of (list of meshes, list of materials)
     """
     frontier_file = fblock.FBlock()
     frontier_file.marshall(filelike.FileLike(data))
