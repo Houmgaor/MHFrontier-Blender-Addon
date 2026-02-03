@@ -16,37 +16,65 @@ from ..fmod.fmot import ChannelType, MotionData
 _logger = get_logger("motion_importer")
 
 
-def _channel_to_property_info(channel_type: int, bone_id: int = 0) -> Tuple[Optional[str], int, str]:
+# Channel mask constants
+MASK_POSITION_BITS = 0x038  # Bits 3-5 for position (0x008 | 0x010 | 0x020)
+MASK_ROTATION_BITS = 0x1C0  # Bits 6-8 for rotation (0x040 | 0x080 | 0x100)
+MASK_ALT_POSITION_BITS = 0x007  # Bits 0-2 for alternate position (0x001 | 0x002 | 0x004)
+
+
+def _channel_to_property_info(
+    channel_type: int,
+    bone_mask: int = 0x1F8,
+) -> Tuple[Optional[str], int, str]:
     """
     Map channel type to Blender property info.
 
-    Note: Position animation is only applied to bone 0 (root) because
-    MHF animation position values appear to be absolute/world positions,
-    not local bone offsets. Applying them to child bones causes distortion.
+    The interpretation of channels 0x008/0x010/0x020 depends on the bone mask:
+    - If mask has rotation bits (0x1C0), these are POSITION channels
+    - If mask only has position bits (0x038), these are ROTATION channels
+
+    This is because bones with only 3 DOF (rotation) use the same channel
+    IDs as position channels but contain rotation data.
 
     :param channel_type: Motion file channel type.
-    :param bone_id: Bone ID (used to filter position animation).
+    :param bone_mask: Bone's channel mask indicating which transforms are present.
     :return: Tuple of (property_name, array_index, transform_type).
              transform_type is 'position', 'rotation', or 'scale'.
     """
-    # Position channels - only apply to root bone (bone 0)
-    # Other bones' position data appears to be IK targets or world positions
-    if channel_type == ChannelType.POSITION_X:
-        if bone_id != 0:
-            return None, 0, "position"  # Skip non-root position
-        return "location", 0, "position"
-    elif channel_type == ChannelType.POSITION_Y:
-        if bone_id != 0:
-            return None, 0, "position"
-        # Frontier Y -> Blender Z (index 2) due to Y-up to Z-up
-        return "location", 2, "position"
-    elif channel_type == ChannelType.POSITION_Z:
-        if bone_id != 0:
-            return None, 0, "position"
-        # Frontier Z -> Blender Y (index 1) due to Y-up to Z-up
-        return "location", 1, "position"
+    # Check if bone has explicit rotation channels (0x040, 0x080, 0x100)
+    # If so, channels 0x008/0x010/0x020 are position
+    # If not, channels 0x008/0x010/0x020 are rotation
+    has_explicit_rotation = (bone_mask & MASK_ROTATION_BITS) != 0
 
-    # Rotation channels - need axis remap
+    # Alternate position channels (weapon format) - bits 0-2
+    # These use a shifted channel numbering where position is 0x1-0x4
+    if channel_type == ChannelType.ALT_POSITION_X:
+        return "location", 0, "position"
+    elif channel_type == ChannelType.ALT_POSITION_Y:
+        return "location", 2, "position"  # Y->Z swap
+    elif channel_type == ChannelType.ALT_POSITION_Z:
+        return "location", 1, "position"  # Z->Y swap
+
+    # Standard position channels - bits 3-5
+    # BUT: if bone has no explicit rotation channels, treat these as rotation!
+    if channel_type == ChannelType.POSITION_X:
+        if has_explicit_rotation:
+            return "location", 0, "position"
+        else:
+            # No explicit rotation = these channels ARE rotation
+            return "rotation_euler", 0, "rotation"
+    elif channel_type == ChannelType.POSITION_Y:
+        if has_explicit_rotation:
+            return "location", 2, "position"  # Y->Z swap
+        else:
+            return "rotation_euler", 2, "rotation"  # Y->Z swap
+    elif channel_type == ChannelType.POSITION_Z:
+        if has_explicit_rotation:
+            return "location", 1, "position"  # Z->Y swap
+        else:
+            return "rotation_euler", 1, "rotation"  # Z->Y swap
+
+    # Explicit rotation channels - need axis remap
     elif channel_type == ChannelType.ROTATION_X:
         # Frontier X -> Blender X (index 0)
         return "rotation_euler", 0, "rotation"
@@ -231,10 +259,11 @@ def import_motion(
 
         # Process each channel
         for channel_type, channel_anim in bone_anim.channels.items():
-            prop_name, index, transform_type = _channel_to_property_info(channel_type, bone_id)
+            prop_name, index, transform_type = _channel_to_property_info(
+                channel_type, bone_anim.channel_mask
+            )
 
             if prop_name is None:
-                # Skip this channel (e.g., position on non-root bones)
                 continue
 
             # Build data path for pose bone
@@ -323,7 +352,9 @@ def import_motion_from_bytes(
         _set_bone_rotation_mode(armature, bone_name, "XYZ")
 
         for channel_type, channel_anim in bone_anim.channels.items():
-            prop_name, index, transform_type = _channel_to_property_info(channel_type, bone_id)
+            prop_name, index, transform_type = _channel_to_property_info(
+                channel_type, bone_anim.channel_mask
+            )
 
             if prop_name is None:
                 continue

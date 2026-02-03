@@ -19,13 +19,27 @@ from ..stage.jkr_decompress import decompress_jkr, is_jkr_file
 
 
 class ChannelType(IntEnum):
-    """Animation channel identifiers."""
+    """Animation channel identifiers.
+
+    Two channel numbering schemes exist:
+    - Standard (NPC/character): position=0x008-0x020, rotation=0x040-0x100
+    - Alternate (weapon): position=0x001-0x004, rotation=0x008-0x020, scale=0x040-0x100
+
+    The alternate scheme shifts all channels down by 3 bits.
+    """
+    # Alternate scheme (weapon animations) - bits 0-2 for position
+    ALT_POSITION_X = 0x001
+    ALT_POSITION_Y = 0x002
+    ALT_POSITION_Z = 0x004
+    # Standard scheme - bits 3-5 for position
     POSITION_X = 0x008
     POSITION_Y = 0x010
     POSITION_Z = 0x020
+    # Standard scheme - bits 6-8 for rotation
     ROTATION_X = 0x040
     ROTATION_Y = 0x080
     ROTATION_Z = 0x100
+    # Standard scheme - bits 9-11 for scale
     SCALE_X = 0x200
     SCALE_Y = 0x400
     SCALE_Z = 0x800
@@ -58,6 +72,7 @@ class BoneAnimation:
     """Animation data for a single bone."""
     bone_id: int
     channels: Dict[int, ChannelAnimation] = field(default_factory=dict)
+    channel_mask: int = 0  # Bone block mask indicating which channels are present
 
 
 @dataclass
@@ -177,6 +192,12 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     - Channel masks: 0x038=position, 0x1C0=rotation, 0x1F8=all
     - Animation bone blocks map directly to skeleton bones (block 0 -> Bone.000, etc.)
 
+    Animation header format (16 bytes):
+    - 4 bytes: type (0x80000002)
+    - 4 bytes: bone count
+    - 4 bytes: total size
+    - 4 bytes: format version (0=standard, 1=extended with extra float)
+
     :param data: File data.
     :param start_offset: Offset to animation header.
     :return: Parsed MotionData or None.
@@ -191,6 +212,7 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
 
     anim_count = _read_uint32(data, start_offset + 4)
     total_size = _read_uint32(data, start_offset + 8)
+    format_version = _read_uint32(data, start_offset + 12)
 
     motion = MotionData()
     max_frame = 0
@@ -199,9 +221,12 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     # Block 0 -> Bone.000, Block 1 -> Bone.001, etc.
     bone_block_count = 0
     current_bone_id = 0
+    current_bone_mask = 0  # Channel mask from bone block header
 
     # Parse blocks within this animation section
-    pos = start_offset + 16
+    # Format version > 0 has extra header data (typically 4 bytes)
+    extra_header_size = 4 if format_version > 0 else 0
+    pos = start_offset + 16 + extra_header_size
     end_pos = start_offset + total_size if total_size > 0 else len(data)
 
     while pos < end_pos and pos + 8 <= len(data):
@@ -223,7 +248,8 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
                 # Add to current bone
                 if current_bone_id not in motion.bone_animations:
                     motion.bone_animations[current_bone_id] = BoneAnimation(
-                        bone_id=current_bone_id
+                        bone_id=current_bone_id,
+                        channel_mask=current_bone_mask,
                     )
 
                 motion.bone_animations[current_bone_id].channels[channel_type] = channel_anim
@@ -241,6 +267,9 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
             # Map animation bone blocks directly to skeleton bones
             # Block 0 -> Bone.000, Block 1 -> Bone.001, etc.
             current_bone_id = bone_block_count
+            # Extract channel mask from lower bits (e.g., 0x038 for rotation-only,
+            # 0x1F8 for position+rotation)
+            current_bone_mask = block_type & 0x0FFF
             bone_block_count += 1
 
             pos += 8

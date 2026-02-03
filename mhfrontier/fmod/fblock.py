@@ -53,6 +53,7 @@ class BlockType(IntEnum):
     # Skeleton blocks
     SKELETON = 0xC0000000       # Skeleton block containing bone hierarchy
     BONE = 0x40000001           # Individual bone data
+    BONE_HD = 0x40000002        # Individual bone data (HD variant)
 
 if TYPE_CHECKING:
     from ..common.filelike import FileLike
@@ -139,6 +140,7 @@ def _build_block_type_map() -> Dict[int, Type[Any]]:
         BlockType.SKELETON: SkeletonBlock,
         # Bone data
         BlockType.BONE: standard_structures.BoneBlock,
+        BlockType.BONE_HD: standard_structures.BoneBlock,
         # Geometry data
         BlockType.TRIS_STRIPS_A: data_containers.TrisStripsData,
         BlockType.TRIS_STRIPS_B: data_containers.TrisStripsData,
