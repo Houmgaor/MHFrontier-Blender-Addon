@@ -152,17 +152,29 @@ class TestBuildBoneGroupBlock(unittest.TestCase):
     """Test bone group block building."""
 
     def test_build_bone_group(self):
-        """Test building a bone group header."""
-        data = build_bone_group_block(5)
+        """Test building a bone group header (12 bytes)."""
+        data = build_bone_group_block(channel_mask=0x1C0, channel_count=3, data_size=48)
 
-        # Should be 8 bytes
-        self.assertEqual(len(data), 8)
+        # Should be 12 bytes
+        self.assertEqual(len(data), 12)
 
-        # Verify block type
-        block_type, padding = struct.unpack("<II", data)
-        expected_type = 0x80000000 | 5
+        # Verify block type, channel_count, and total_size
+        block_type, channel_count, total_size = struct.unpack("<III", data)
+        expected_type = 0x80000000 | 0x1C0
         self.assertEqual(block_type, expected_type)
-        self.assertEqual(padding, 0)
+        self.assertEqual(channel_count, 3)
+        self.assertEqual(total_size, 12 + 48)  # header + data
+
+    def test_build_bone_group_zero_data(self):
+        """Test bone group with no keyframe data."""
+        data = build_bone_group_block(channel_mask=0x038, channel_count=0, data_size=0)
+
+        self.assertEqual(len(data), 12)
+
+        block_type, channel_count, total_size = struct.unpack("<III", data)
+        self.assertEqual(block_type, 0x80000000 | 0x038)
+        self.assertEqual(channel_count, 0)
+        self.assertEqual(total_size, 12)
 
 
 class TestBuildAnimationBlock(unittest.TestCase):
@@ -198,8 +210,8 @@ class TestBuildAnimationBlock(unittest.TestCase):
         )
         data = build_animation_block(motion)
 
-        # Bone group (8) + keyframe block (16) = 24 bytes
-        self.assertEqual(len(data), 24)
+        # Bone group (12) + keyframe block (16) = 28 bytes
+        self.assertEqual(len(data), 28)
 
 
 class TestBuildFmotFile(unittest.TestCase):
@@ -227,8 +239,8 @@ class TestBuildFmotFile(unittest.TestCase):
         )
         data = build_fmot_file(motion)
 
-        # Header (16) + bone group (8) + keyframe block (8 + 16) = 48 bytes
-        self.assertEqual(len(data), 48)
+        # Header (16) + bone group (12) + keyframe block (8 + 16) = 52 bytes
+        self.assertEqual(len(data), 52)
 
         # Verify header
         header_type = struct.unpack_from("<I", data, 0)[0]

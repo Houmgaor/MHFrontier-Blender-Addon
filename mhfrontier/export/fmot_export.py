@@ -82,19 +82,20 @@ def build_keyframe_block(channel: ExtractedChannel) -> bytes:
     return header + keyframe_data
 
 
-def build_bone_group_block(bone_id: int) -> bytes:
+def build_bone_group_block(channel_mask: int, channel_count: int, data_size: int) -> bytes:
     """
-    Build a bone group header block.
+    Build a bone group header block (12 bytes).
 
-    This is an 8-byte block that marks the start of a bone's animation data.
-    Block type: 0x80000000 | bone_id
+    Matches the game's 12-byte format: type + channel_count + block_size.
 
-    :param bone_id: Bone identifier.
-    :return: 8-byte binary block.
+    :param channel_mask: Bitmask of which channels are present (e.g. 0x1C0 for rotation XYZ).
+    :param channel_count: Number of keyframe channels in this bone's data.
+    :param data_size: Size in bytes of the keyframe data following this header.
+    :return: 12-byte binary block.
     """
-    block_type = 0x80000000 | bone_id
-    # 8 bytes: type (4) + padding/count (4)
-    return struct.pack("<II", block_type, 0)
+    block_type = 0x80000000 | channel_mask
+    total_size = 12 + data_size  # header size + keyframe data
+    return struct.pack("<III", block_type, channel_count, total_size)
 
 
 def build_animation_block(motion: ExtractedMotion) -> bytes:
@@ -103,7 +104,7 @@ def build_animation_block(motion: ExtractedMotion) -> bytes:
 
     Structure:
     - For each bone:
-      - Bone group block (8 bytes)
+      - Bone group block (12 bytes: type + channel_count + block_size)
       - Keyframe blocks for each channel
 
     :param motion: Extracted motion data.
@@ -117,8 +118,9 @@ def build_animation_block(motion: ExtractedMotion) -> bytes:
     for bone_id in sorted_bone_ids:
         bone_anim = motion.bone_animations[bone_id]
 
-        # Add bone group header
-        parts.append(build_bone_group_block(bone_id))
+        # Build keyframe data first to know data_size
+        keyframe_parts = []
+        channel_mask = 0
 
         # Sort channels by type for consistent output
         sorted_channel_types = sorted(bone_anim.channels.keys())
@@ -126,7 +128,15 @@ def build_animation_block(motion: ExtractedMotion) -> bytes:
         for channel_type in sorted_channel_types:
             channel = bone_anim.channels[channel_type]
             if channel.keyframes:
-                parts.append(build_keyframe_block(channel))
+                channel_mask |= channel_type
+                keyframe_parts.append(build_keyframe_block(channel))
+
+        keyframe_data = b"".join(keyframe_parts)
+        channel_count = len(keyframe_parts)
+
+        # Add bone group header with computed mask and sizes
+        parts.append(build_bone_group_block(channel_mask, channel_count, len(keyframe_data)))
+        parts.append(keyframe_data)
 
     return b"".join(parts)
 

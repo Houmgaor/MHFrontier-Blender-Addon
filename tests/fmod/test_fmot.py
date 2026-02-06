@@ -138,6 +138,83 @@ class TestLoadMotionFromBytes(unittest.TestCase):
 
         self.assertEqual(len(motion.bone_animations), 0)
 
+    def test_parse_12_byte_bone_blocks(self):
+        """Test parsing game-format 12-byte bone group blocks.
+
+        Game .mot files use 12-byte bone headers:
+        - uint32: block_type (0x80000000 | channel_mask)
+        - uint32: channel_count
+        - uint32: block_size (total including header)
+        """
+        # Build a minimal motion file with one bone using 12-byte header
+        # Animation header (16 bytes)
+        channel_mask = 0x1C0  # rotation XYZ
+        bone_block_type = 0x80000000 | channel_mask
+        channel_count = 1
+
+        # Build keyframe block for ROTATION_X (0x040)
+        kf_block_type = 0x80120000 | 0x040
+        kf_count = 1
+        # Keyframe: tangent_in=0, tangent_out=0, value=1000, frame=5
+        kf_data = struct.pack("<hhHH", 0, 0, 1000, 5)
+        kf_block = struct.pack("<IHH", kf_block_type, kf_count, 0) + kf_data
+
+        # Bone group block (12 bytes): type + channel_count + block_size
+        bone_data_size = len(kf_block)
+        block_size = 12 + bone_data_size
+        bone_block = struct.pack("<III", bone_block_type, channel_count, block_size)
+
+        # Animation content
+        content = bone_block + kf_block
+
+        # Animation header
+        total_size = 16 + len(content)
+        header = struct.pack("<IIII", 0x80000002, 1, total_size, 0)
+
+        data = header + content
+        motion = fmot.load_motion_from_bytes(data)
+
+        self.assertEqual(len(motion.bone_animations), 1)
+        self.assertIn(0, motion.bone_animations)
+        bone = motion.bone_animations[0]
+        self.assertEqual(bone.channel_mask, channel_mask)
+        self.assertEqual(bone.channel_count, channel_count)
+        self.assertIn(0x040, bone.channels)
+        self.assertEqual(len(bone.channels[0x040].keyframes), 1)
+        self.assertEqual(bone.channels[0x040].keyframes[0].frame, 5)
+        self.assertAlmostEqual(bone.channels[0x040].keyframes[0].value, 1000.0)
+
+    def test_parse_8_byte_bone_blocks_backward_compat(self):
+        """Test parsing legacy 8-byte bone group blocks.
+
+        Older exported files used 8-byte bone headers (type + padding).
+        The parser should handle both formats.
+        """
+        # Build a minimal motion with 8-byte bone blocks
+        # The second word is 0 (padding) and the next thing is a keyframe block
+        # (0x8012xxxx), so the parser should NOT skip it as a block_size.
+        bone_block_type = 0x80000000 | 0x1C0
+        bone_block = struct.pack("<II", bone_block_type, 0)
+
+        # Keyframe block for ROTATION_X
+        kf_block_type = 0x80120000 | 0x040
+        kf_data = struct.pack("<hhHH", 0, 0, 500, 10)
+        kf_block = struct.pack("<IHH", kf_block_type, 1, 0) + kf_data
+
+        content = bone_block + kf_block
+        total_size = 16 + len(content)
+        header = struct.pack("<IIII", 0x80000002, 1, total_size, 0)
+
+        data = header + content
+        motion = fmot.load_motion_from_bytes(data)
+
+        self.assertEqual(len(motion.bone_animations), 1)
+        self.assertIn(0, motion.bone_animations)
+        bone = motion.bone_animations[0]
+        self.assertIn(0x040, bone.channels)
+        self.assertEqual(bone.channels[0x040].keyframes[0].frame, 10)
+        self.assertAlmostEqual(bone.channels[0x040].keyframes[0].value, 500.0)
+
 
 class TestChannelToPropertyInfo(unittest.TestCase):
     """Test channel type to Blender property mapping."""

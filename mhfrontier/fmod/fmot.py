@@ -73,6 +73,7 @@ class BoneAnimation:
     bone_id: int
     channels: Dict[int, ChannelAnimation] = field(default_factory=dict)
     channel_mask: int = 0  # Bone block mask indicating which channels are present
+    channel_count: int = 0  # Number of channels declared in bone block header
 
 
 @dataclass
@@ -222,6 +223,7 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     bone_block_count = 0
     current_bone_id = 0
     current_bone_mask = 0  # Channel mask from bone block header
+    current_channel_count = 0  # Channel count from bone block header
 
     # Parse blocks within this animation section
     # Format version > 0 has extra header data (typically 4 bytes)
@@ -250,6 +252,7 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
                     motion.bone_animations[current_bone_id] = BoneAnimation(
                         bone_id=current_bone_id,
                         channel_mask=current_bone_mask,
+                        channel_count=current_channel_count,
                     )
 
                 motion.bone_animations[current_bone_id].channels[channel_type] = channel_anim
@@ -270,9 +273,19 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
             # Extract channel mask from lower bits (e.g., 0x038 for rotation-only,
             # 0x1F8 for position+rotation)
             current_bone_mask = block_type & 0x0FFF
+            current_channel_count = _read_uint32(data, pos + 4)  # second word
             bone_block_count += 1
 
             pos += 8
+            # Game files use 12-byte bone blocks (type + channel_count + block_size).
+            # Exported files from older versions used 8-byte blocks.
+            # Peek at the next word: if it's not a keyframe block, not another bone
+            # block, and not zero, treat it as the block_size third word and skip it.
+            if pos + 4 <= len(data):
+                next_val = _read_uint32(data, pos)
+                if (next_val & 0x80000000) == 0 and next_val != 0:
+                    # Looks like a block_size value, skip it
+                    pos += 4
             continue
 
         # Unknown block type - skip
