@@ -82,6 +82,7 @@ class MotionData:
     frame_count: int = 0
     bone_animations: Dict[int, BoneAnimation] = field(default_factory=dict)
     name: str = ""
+    bone_offset: int = 0  # Offset to add to bone IDs for skeleton mapping
 
 
 def _read_uint32(data: bytes, offset: int) -> int:
@@ -120,6 +121,75 @@ def _find_animation_blocks(data: bytes) -> List[int]:
         pos += 4
 
     return offsets
+
+
+def _get_animation_bone_count(data: bytes, start_offset: int) -> int:
+    """Read the declared bone count from an animation block header.
+
+    :param data: Raw motion file data.
+    :param start_offset: Offset to the animation header (0x80000002 marker).
+    :return: Declared bone count, or 0 if invalid.
+    """
+    if start_offset + 16 > len(data):
+        return 0
+    if _read_uint32(data, start_offset) != BLOCK_ANIMATION_HEADER:
+        return 0
+    return _read_uint32(data, start_offset + 4)
+
+
+def determine_tier_bone_offsets(
+    data: bytes,
+) -> List[Tuple[int, int, int]]:
+    """Determine animation tier structure from a multi-animation motion file.
+
+    MHF motion files group animations into tiers by body region.
+    Each tier animates a contiguous range of skeleton bones:
+    e.g. tier 0 = lower body (bones 0-15), tier 1 = upper body (bones 16-46),
+    tier 2 = tail (bones 47-51).
+
+    Bone IDs within each tier are local (0-based), so a bone_offset must be
+    added to map them to the correct skeleton bones.
+
+    :param data: Raw motion file data.
+    :return: List of (start_anim_index, bone_count, bone_offset) per tier.
+    """
+    anim_offsets = _find_animation_blocks(data)
+    if not anim_offsets:
+        return []
+
+    # Read declared bone count for each animation
+    bone_counts = [_get_animation_bone_count(data, off) for off in anim_offsets]
+
+    # Group consecutive animations with the same bone count into tiers
+    tiers = []
+    cumulative_offset = 0
+    i = 0
+    while i < len(bone_counts):
+        count = bone_counts[i]
+        start = i
+        while i < len(bone_counts) and bone_counts[i] == count:
+            i += 1
+        tiers.append((start, count, cumulative_offset))
+        cumulative_offset += count
+
+    return tiers
+
+
+def get_bone_offset_for_animation(
+    data: bytes,
+    anim_index: int,
+) -> int:
+    """Get the skeleton bone offset for a specific animation index.
+
+    :param data: Raw motion file data.
+    :param anim_index: Animation index (0-based).
+    :return: Bone offset to add to local bone IDs.
+    """
+    tiers = determine_tier_bone_offsets(data)
+    for start, count, offset in reversed(tiers):
+        if anim_index >= start:
+            return offset
+    return 0
 
 
 def _parse_keyframes_from_block(
@@ -211,7 +281,7 @@ def _parse_animation_at_offset(data: bytes, start_offset: int) -> Optional[Motio
     if header_type != BLOCK_ANIMATION_HEADER:
         return None
 
-    anim_count = _read_uint32(data, start_offset + 4)
+    bone_count = _read_uint32(data, start_offset + 4)
     total_size = _read_uint32(data, start_offset + 8)
     format_version = _read_uint32(data, start_offset + 12)
 

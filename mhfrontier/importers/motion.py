@@ -97,10 +97,26 @@ def _channel_to_property_info(
     return None, 0, "unknown"
 
 
+def _is_x_rotation(channel_type: int, bone_mask: int = 0x1F8) -> bool:
+    """Check if a channel represents X-axis rotation.
+
+    X rotation must be negated during Y-up to Z-up coordinate conversion
+    because swapping Y/Z axes reverses the rotation direction around X.
+    """
+    has_explicit_rotation = (bone_mask & MASK_ROTATION_BITS) != 0
+    if channel_type == ChannelType.ROTATION_X:
+        return True
+    if channel_type == ChannelType.POSITION_X and not has_explicit_rotation:
+        # POS_X reinterpreted as rotation when no explicit rotation bits
+        return True
+    return False
+
+
 def _transform_value(
     value: float,
     transform_type: str,
     channel_type: int,
+    negate: bool = False,
 ) -> float:
     """
     Transform a keyframe value from Frontier to Blender.
@@ -108,6 +124,7 @@ def _transform_value(
     :param value: Raw value from motion file.
     :param transform_type: Type of transform ('position', 'rotation', 'scale').
     :param channel_type: Original channel type.
+    :param negate: If True, negate the result (for X rotation axis flip).
     :return: Transformed value for Blender.
     """
     if transform_type == "position":
@@ -115,8 +132,11 @@ def _transform_value(
         return value * IMPORT_SCALE
 
     elif transform_type == "rotation":
-        # Convert to radians
-        return value * ROTATION_SCALE
+        # Convert to radians, negate X rotation for Y-up → Z-up conversion
+        result = value * ROTATION_SCALE
+        if negate:
+            result = -result
+        return result
 
     elif transform_type == "scale":
         # Scale is typically a multiplier, may need adjustment
@@ -132,18 +152,23 @@ def _transform_value(
 def _transform_tangent(
     tangent: float,
     transform_type: str,
+    negate: bool = False,
 ) -> float:
     """
     Transform a Bezier tangent value.
 
     :param tangent: Raw tangent from motion file.
     :param transform_type: Type of transform.
+    :param negate: If True, negate the result (for X rotation axis flip).
     :return: Transformed tangent.
     """
     if transform_type == "position":
         return tangent * IMPORT_SCALE
     elif transform_type == "rotation":
-        return tangent * ROTATION_SCALE
+        result = tangent * ROTATION_SCALE
+        if negate:
+            result = -result
+        return result
     elif transform_type == "scale":
         return tangent / 32768.0 if abs(tangent) > 10 else tangent
     return tangent
@@ -155,6 +180,7 @@ def _calculate_bezier_handles(
     tangent_in: float,
     tangent_out: float,
     transform_type: str,
+    negate: bool = False,
 ) -> Tuple[Tuple[float, float], Tuple[float, float]]:
     """
     Calculate Bezier handle positions from tangent values.
@@ -167,14 +193,15 @@ def _calculate_bezier_handles(
     :param tangent_in: Incoming tangent (slope).
     :param tangent_out: Outgoing tangent (slope).
     :param transform_type: Transform type for scaling.
+    :param negate: If True, negate tangents (for X rotation axis flip).
     :return: Tuple of (handle_left, handle_right) positions.
     """
     # Handle offset distance (in frames)
     handle_distance = 1.0 / 3.0
 
     # Transform tangents
-    tan_in = _transform_tangent(tangent_in, transform_type)
-    tan_out = _transform_tangent(tangent_out, transform_type)
+    tan_in = _transform_tangent(tangent_in, transform_type, negate)
+    tan_out = _transform_tangent(tangent_out, transform_type, negate)
 
     # Calculate handle positions
     # Left handle: go backwards in time, down/up by tangent
@@ -192,16 +219,17 @@ def _calculate_bezier_handles(
     return handle_left, handle_right
 
 
-def _set_bone_rotation_mode(armature: Any, bone_name: str, mode: str = "XYZ") -> None:
+def _set_bone_rotation_mode(armature: Any, bone_name: str, mode: str = "XZY") -> None:
     """
     Set the rotation mode for a pose bone.
 
     Blender bones default to QUATERNION rotation, but MHF animations use
-    Euler rotations. This must be set before animation data is applied.
+    Euler rotations. XZY order is required because the Y↔Z axis swap
+    changes the Euler decomposition order.
 
     :param armature: Blender armature object.
     :param bone_name: Name of the bone.
-    :param mode: Rotation mode ('XYZ', 'QUATERNION', etc.).
+    :param mode: Rotation mode ('XZY', 'XYZ', 'QUATERNION', etc.).
     """
     if armature is None:
         return
@@ -242,9 +270,13 @@ def import_motion(
     action_name = motion_data.name or "MHF_Motion"
     action = builders.animation.create_action(action_name)
 
+    # Apply bone offset for tier-based skeleton mapping
+    bone_offset = motion_data.bone_offset
+
     # Process each bone's animations
     for bone_id, bone_anim in motion_data.bone_animations.items():
-        bone_name = f"Bone.{bone_id:03d}"
+        skeleton_bone_id = bone_id + bone_offset
+        bone_name = f"Bone.{skeleton_bone_id:03d}"
 
         # Check if bone exists in armature
         if armature is not None:
@@ -254,8 +286,8 @@ def import_motion(
                 if bone_name not in bones:
                     _logger.debug(f"Bone {bone_name} not in armature, skipping")
                     continue
-                # Set rotation mode to Euler for animation compatibility
-                _set_bone_rotation_mode(armature, bone_name, "XYZ")
+                # Set rotation mode - XZY because Y↔Z swap changes Euler order
+                _set_bone_rotation_mode(armature, bone_name, "XZY")
 
         # Process each channel
         for channel_type, channel_anim in bone_anim.channels.items():
@@ -266,6 +298,9 @@ def import_motion(
             if prop_name is None:
                 continue
 
+            # X rotation must be negated for Y-up → Z-up conversion
+            negate = _is_x_rotation(channel_type, bone_anim.channel_mask)
+
             # Build data path for pose bone
             data_path = f'pose.bones["{bone_name}"].{prop_name}'
 
@@ -275,7 +310,7 @@ def import_motion(
             # Add keyframes
             for kf in channel_anim.keyframes:
                 # Transform value
-                value = _transform_value(kf.value, transform_type, channel_type)
+                value = _transform_value(kf.value, transform_type, channel_type, negate)
 
                 # Calculate handles if tangents are non-zero
                 handle_left = None
@@ -288,6 +323,7 @@ def import_motion(
                         kf.tangent_in,
                         kf.tangent_out,
                         transform_type,
+                        negate,
                     )
 
                 # Add keyframe
@@ -345,11 +381,15 @@ def import_motion_from_bytes(
     # Use the same import logic
     action = builders.animation.create_action(name)
 
-    for bone_id, bone_anim in motion_data.bone_animations.items():
-        bone_name = f"Bone.{bone_id:03d}"
+    # Apply bone offset for tier-based skeleton mapping
+    bone_offset = motion_data.bone_offset
 
-        # Set rotation mode to Euler for animation compatibility
-        _set_bone_rotation_mode(armature, bone_name, "XYZ")
+    for bone_id, bone_anim in motion_data.bone_animations.items():
+        skeleton_bone_id = bone_id + bone_offset
+        bone_name = f"Bone.{skeleton_bone_id:03d}"
+
+        # Set rotation mode - XZY because Y↔Z swap changes Euler order
+        _set_bone_rotation_mode(armature, bone_name, "XZY")
 
         for channel_type, channel_anim in bone_anim.channels.items():
             prop_name, index, transform_type = _channel_to_property_info(
@@ -359,11 +399,14 @@ def import_motion_from_bytes(
             if prop_name is None:
                 continue
 
+            # X rotation must be negated for Y-up → Z-up conversion
+            negate = _is_x_rotation(channel_type, bone_anim.channel_mask)
+
             data_path = f'pose.bones["{bone_name}"].{prop_name}'
             fcurve = builders.animation.create_fcurve(action, data_path, index)
 
             for kf in channel_anim.keyframes:
-                value = _transform_value(kf.value, transform_type, channel_type)
+                value = _transform_value(kf.value, transform_type, channel_type, negate)
 
                 handle_left = None
                 handle_right = None
@@ -375,6 +418,7 @@ def import_motion_from_bytes(
                         kf.tangent_in,
                         kf.tangent_out,
                         transform_type,
+                        negate,
                     )
 
                 builders.animation.add_keyframe(
