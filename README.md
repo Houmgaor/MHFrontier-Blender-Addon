@@ -6,6 +6,7 @@ Supports:
 - **FMOD** - 3D model geometry (import/export)
 - **FSKL** - Skeleton/bone hierarchy (import/export)
 - **MOT** - Animation/motion data (import)
+- **AAN** - Animation packages with multi-part body regions (import)
 - **Stage containers** - Map/stage files with multiple models
 
 ## Install
@@ -39,6 +40,9 @@ Your model is imported with the textures, and you can change its pose.
 
 To import animations, first create an armature as described above.
 Then with the armature selected, `File > Import > MHF Motion (.mot)`.
+
+For AAN animation packages (multi-part body region animations), use `File > Import > MHF AAN Animation (.aan)`.
+Choose between **Monster** mode (parts map to body region buckets) or **Player** mode (upper/lower body split).
 
 The animation will be imported as a Blender Action and automatically assigned to the armature.
 You can view the animation in the Timeline or Dope Sheet editors.
@@ -118,7 +122,7 @@ the [Blender tutorial](https://github.com/The1andonlyDarto/MHAssetInfo/wiki/Blen
 New features:
 
 - **FMOD/FSKL export** - Export models and skeletons back to Frontier format.
-- **Animation/motion import** - Import .mot files to animate armatures.
+- **Animation/motion import** - Import .mot and .aan files to animate armatures.
 - **Stage/map import** - Import entire stages from .pac containers or directories.
 - **OGG audio extraction** - Extract embedded audio from stage containers.
 - Weapons such as lance or models with different parts can now be loaded with a skeleton assigned.
@@ -139,6 +143,7 @@ Changes:
 * @AsteriskAmpersand / *& - Original author.
 * @MHVuze / Vuze - For the Frontier Recursive Block Format documentation used to build this importer.
 * @Silvris - For the Materials and Skeleton documentation used to build this importer.
+* @Paxlord - For the AAN animation parser and player animation support from [mhfz-blender-plugin](https://github.com/Paxlord/mhfz-blender-plugin).
 
 ## License
 

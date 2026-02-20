@@ -17,6 +17,7 @@ Public API:
 from .fmod import import_model, clear_scene
 from .skeleton import import_skeleton
 from .motion import import_motion, import_motion_from_bytes
+from .aan import import_aan
 from .stage import (
     import_stage,
     import_fmod_file,
@@ -30,6 +31,7 @@ __all__ = [
     "import_skeleton",
     "import_motion",
     "import_motion_from_bytes",
+    "import_aan",
     "import_stage",
     "import_fmod_file",
     "import_jkr_file",

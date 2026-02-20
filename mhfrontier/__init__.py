@@ -24,6 +24,7 @@ if _BLENDER_AVAILABLE:
         fmod_import,
         fskl_import,
         fmot_import,
+        faan_import,
         fskl_convert,
         stage_import,
         fmod_export_op,
@@ -75,6 +76,13 @@ def register():
         bpy.types.TOPBAR_MT_file_import.append(fmot_import.menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.append(fmot_import.menu_func_import)
+
+    # Register the FAAN (AAN Animation Package) file import
+    bpy.utils.register_class(faan_import.ImportFAAN)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.append(faan_import.menu_func_import)
+    else:
+        bpy.types.INFO_MT_file_import.append(faan_import.menu_func_import)
 
     # Register stage/map import
     bpy.utils.register_class(stage_import.ImportStage)
@@ -141,6 +149,13 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(fmot_import.menu_func_import)
     else:
         bpy.types.INFO_MT_file_import.remove(fmot_import.menu_func_import)
+
+    # AAN Animation Package import
+    bpy.utils.unregister_class(faan_import.ImportFAAN)
+    if bpy.app.version >= (2, 8):
+        bpy.types.TOPBAR_MT_file_import.remove(faan_import.menu_func_import)
+    else:
+        bpy.types.INFO_MT_file_import.remove(faan_import.menu_func_import)
 
     # Stage/map import
     bpy.utils.unregister_class(stage_import.ImportStage)

@@ -159,3 +159,16 @@ ROTATION_EXPORT_SCALE: float = 32768.0 / math.pi
 
 #: Frame rate for MHF animations (30 fps)
 MOTION_FRAMERATE: float = 30.0
+
+
+# =============================================================================
+# AAN Animation Configuration
+# =============================================================================
+
+#: Rotation scaling factor for AAN short keyframes (converts int16 to radians)
+#: AAN short rotation values use a different scale than .mot files
+AAN_SHORT_ROTATION_SCALE: float = math.pi / 8192.0
+
+#: Location/scale scaling factor for AAN short keyframes
+#: AAN short location values are fixed-point with 4-bit fraction
+AAN_SHORT_LOCATION_SCALE: float = 1.0 / 16.0
