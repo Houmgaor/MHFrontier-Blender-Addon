@@ -279,7 +279,26 @@ class BlenderMatrixFactory(MatrixFactory):
 
 
 class BlenderAnimationBuilder(AnimationBuilder):
-    """Concrete animation builder using Blender APIs."""
+    """Concrete animation builder using Blender APIs.
+
+    Supports both legacy (Blender <5.0) and layered action (Blender 5.0+) APIs.
+    In Blender 5.0+, actions use layers/strips/channelbags instead of direct fcurves.
+    """
+
+    def __init__(self):
+        self._use_layered = bpy.app.version >= (5, 0, 0)
+        # Track channelbag per action for layered mode
+        self._channelbags: dict = {}
+
+    def _get_channelbag(self, action: bpy.types.Action):
+        """Get or create the channelbag for an action (Blender 5.0+)."""
+        if action not in self._channelbags:
+            slot = action.slots.new("OBJECT", "Slot")
+            layer = action.layers.new(name="Layer")
+            strip = layer.strips.new(type="KEYFRAME")
+            channelbag = strip.channelbags.new(slot=slot)
+            self._channelbags[action] = (channelbag, slot)
+        return self._channelbags[action]
 
     def create_action(self, name: str) -> bpy.types.Action:
         return bpy.data.actions.new(name=name)
@@ -290,6 +309,9 @@ class BlenderAnimationBuilder(AnimationBuilder):
         data_path: str,
         index: int = 0,
     ) -> bpy.types.FCurve:
+        if self._use_layered:
+            channelbag, _slot = self._get_channelbag(action)
+            return channelbag.fcurves.new(data_path=data_path, index=index)
         return action.fcurves.new(data_path=data_path, index=index)
 
     def add_keyframe(
@@ -334,6 +356,9 @@ class BlenderAnimationBuilder(AnimationBuilder):
         if obj.animation_data is None:
             obj.animation_data_create()
         obj.animation_data.action = action
+        if self._use_layered and action in self._channelbags:
+            _channelbag, slot = self._channelbags[action]
+            obj.animation_data.action_slot = slot
 
 
 # Singleton instances for convenience
