@@ -139,19 +139,19 @@ def create_texture_layer(
     for mat_id in material_list:
         builders.mesh.add_material(blender_mesh, blender_materials[mat_id])
 
-    # Map material IDs to local indices
-    mat_local_index = {mat_id: i for i, mat_id in enumerate(material_list)}
-
-    # Build face_materials list
+    # Build face_materials list.
+    # material_map values are *slot indices* (0-based position in material_list),
+    # not material IDs.  Using them as IDs was wrong for meshes whose material_list
+    # contains non-zero-based IDs (e.g. [30, 31, 32, 33]).
     face_materials = []
     polygon_count = builders.mesh.get_polygon_count(blender_mesh)
+    n_slots = len(material_list)
     for face_idx in range(polygon_count):
-        # material_map is a list of material IDs per face
         if material_map is not None and face_idx < len(material_map):
-            mat_id = material_map[face_idx]
+            slot = material_map[face_idx]
         else:
-            mat_id = material_list[0] if material_list else 0
-        face_materials.append(mat_local_index.get(mat_id, 0))
+            slot = 0
+        face_materials.append(min(slot, n_slots - 1) if n_slots else 0)
 
     # Set UVs and face materials using the API
     builders.mesh.set_uvs(blender_mesh, uvs, face_materials)
