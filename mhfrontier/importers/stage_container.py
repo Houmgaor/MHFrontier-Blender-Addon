@@ -2,26 +2,106 @@
 """
 Stage container import for packed .pac files.
 
-Handles parsing and importing segments from packed stage containers.
+Mirrors MHBridge's collect_assets / collect_bundles recursive descent:
+  fully_unwrap → try FMOD → try PNG → try stage_container → try PAC archive
 """
 
-import tempfile
+import struct
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
-from ..stage.jkr_decompress import decompress_jkr
 from ..stage.stage_container import (
     parse_stage_container,
-    StageSegment,
-    SegmentType,
-    get_fmod_segments,
-    get_texture_segments,
-    get_audio_segments,
+    fully_unwrap,
+    is_stage_container,
 )
+from ..stage.pac import is_pac_archive, parse_pac
 from ..blender.builders import Builders, get_builders
 from ..logging_config import get_logger
 
 _logger = get_logger("stage")
+
+_PNG_MAGIC = b"\x89PNG"
+_FMOD_FILE_BLOCK_TYPE = 0x00000001  # FileBlock — first 4 bytes of every FMOD file
+_MAX_DEPTH = 8
+
+
+def _is_png(data: bytes) -> bool:
+    return len(data) >= 4 and data[:4] == _PNG_MAGIC
+
+
+def _is_fmod_block(data: bytes) -> bool:
+    """
+    Check if data is an FMOD file by looking for FileBlock (type 0x00000001).
+
+    FMOD files start with a 12-byte block header:
+      - block_type (4 bytes): 0x00000001 for FileBlock
+      - count      (4 bytes): number of child blocks (often small or negative)
+      - size       (4 bytes): total block size == len(data) for well-formed files
+
+    A PAC archive with count=1 also starts with 0x00000001, but its 'size' field
+    (bytes 8-11) is the payload size, not the total file size, so the equality
+    check discriminates them in practice.
+    """
+    if len(data) < 12:
+        return False
+    block_type = struct.unpack_from("<I", data, 0)[0]
+    if block_type != _FMOD_FILE_BLOCK_TYPE:
+        return False
+    block_size = struct.unpack_from("<I", data, 8)[0]
+    return block_size == len(data)
+
+
+def _collect_fmod_blobs(data: bytes, depth: int) -> List[bytes]:
+    """
+    Recursively collect raw FMOD blobs from a data blob.
+
+    Mirrors MHBridge collect_assets():
+      1. fully_unwrap (decrypt ECD/EXF, decompress JKR)
+      2. try FMOD block (FileBlock type 0x00000001 with matching size)
+      3. try PNG (skip — no geometry)
+      4. try stage_container → recurse into segments
+      5. try PAC archive → recurse into entries
+    """
+    if depth > _MAX_DEPTH or len(data) < 12:
+        return []
+
+    blob = fully_unwrap(data)
+
+    # FMOD model: FileBlock with matching total size
+    if _is_fmod_block(blob):
+        return [blob]
+
+    # PNG texture — skip
+    if _is_png(blob):
+        return []
+
+    results = []
+
+    # Stage container (must check before PAC — no magic bytes, heuristic only)
+    if is_stage_container(blob):
+        segments = parse_stage_container(blob)
+        _logger.debug(f"[depth={depth}] stage_container: {len(segments)} segments")
+        for seg in segments:
+            if seg.size == 0:
+                continue
+            results.extend(_collect_fmod_blobs(seg.data, depth + 1))
+        return results
+
+    # PAC archive
+    if is_pac_archive(blob):
+        pac = parse_pac(blob)
+        if pac is None:
+            return []
+        _logger.debug(f"[depth={depth}] PAC: {len(pac.entries)} entries")
+        for i in range(len(pac.entries)):
+            entry_data = pac.extract(i)
+            if not entry_data:
+                continue
+            results.extend(_collect_fmod_blobs(entry_data, depth + 1))
+        return results
+
+    return []
 
 
 def import_packed_stage(
@@ -33,139 +113,48 @@ def import_packed_stage(
     builders: Optional[Builders] = None,
 ) -> List[Any]:
     """
-    Import a packed stage container file.
+    Import a packed stage .pac file.
+
+    Recursively descends through PAC archives and stage containers to find
+    FMOD models, mirroring MHBridge's collect_model_bundles / collect_assets.
 
     :param stage_path: Path to the stage .pac file.
     :param import_textures: Import textures if available.
     :param create_collection: Create a collection for the stage objects.
     :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
-    :param import_audio: Import audio files (OGG) if available.
-    :param builders: Optional builders (defaults to Blender implementation).
-    :return: List of imported Blender objects.
-    """
-    with open(stage_path, "rb") as f:
-        data = f.read()
-
-    segments = parse_stage_container(data)
-    _logger.info(f"Parsed stage container: {len(segments)} segments")
-
-    return import_segments(
-        segments,
-        stage_path.stem,
-        import_textures,
-        create_collection,
-        import_fmod_from_bytes_func,
-        import_audio,
-        builders,
-    )
-
-
-def import_segments(
-    segments: List[StageSegment],
-    stage_name: str,
-    import_textures: bool,
-    create_collection: bool,
-    import_fmod_from_bytes_func: Callable,
-    import_audio: bool = True,
-    builders: Optional[Builders] = None,
-) -> List[Any]:
-    """
-    Import segments from a parsed stage container.
-
-    :param segments: List of parsed segments.
-    :param stage_name: Name for the stage (used for collection).
-    :param import_textures: Import textures if available.
-    :param create_collection: Create a collection for the stage objects.
-    :param import_fmod_from_bytes_func: Function to import FMOD data from bytes.
-    :param import_audio: Import audio files (OGG) if available.
+    :param import_audio: Unused (kept for API compatibility).
     :param builders: Optional builders (defaults to Blender implementation).
     :return: List of imported Blender objects.
     """
     if builders is None:
         builders = get_builders()
 
-    imported_objects: List[Any] = []
-    collection = None
+    with open(stage_path, "rb") as f:
+        raw = f.read()
 
+    fmod_blobs = _collect_fmod_blobs(raw, depth=0)
+    _logger.info(f"Found {len(fmod_blobs)} FMOD blobs in {stage_path.name}")
+
+    if not fmod_blobs:
+        _logger.warning(f"No FMOD models found in {stage_path}")
+        return []
+
+    collection = None
     if create_collection:
-        collection = builders.scene.create_collection(stage_name)
+        collection = builders.scene.create_collection(stage_path.stem)
         builders.scene.link_collection_to_scene(collection)
 
-    # Collect texture data for later use
-    texture_data = []
-    if import_textures:
-        texture_segments = get_texture_segments(segments)
-        for seg in texture_segments:
-            texture_data.append(seg.data)
-
-    # Process FMOD segments (both direct and compressed)
-    fmod_segments = get_fmod_segments(segments)
-
-    for segment in fmod_segments:
+    imported_objects: List[Any] = []
+    for i, blob in enumerate(fmod_blobs):
         try:
-            if segment.segment_type == SegmentType.JKR:
-                # Decompress first
-                decompressed = decompress_jkr(segment.data)
-                if decompressed is None:
-                    _logger.warning(f"Failed to decompress segment {segment.index}")
-                    continue
-
-                # Try to import as FMOD
-                try:
-                    objects = import_fmod_from_bytes_func(
-                        decompressed,
-                        f"Stage_{segment.index:04d}",
-                        import_textures,
-                        collection,
-                    )
-                    imported_objects.extend(objects)
-                except Exception as e:
-                    _logger.warning(
-                        f"Segment {segment.index}: decompressed but couldn't parse as FMOD: {e}"
-                    )
-
-            elif segment.segment_type == SegmentType.FMOD:
-                objects = import_fmod_from_bytes_func(
-                    segment.data,
-                    f"Stage_{segment.index:04d}",
-                    import_textures,
-                    collection,
-                )
-                imported_objects.extend(objects)
-
+            objects = import_fmod_from_bytes_func(
+                blob,
+                f"Stage_{i:04d}",
+                import_textures,
+                collection,
+            )
+            imported_objects.extend(objects)
         except Exception as e:
-            _logger.error(f"Error processing segment {segment.index}: {e}")
-
-    # Process audio segments (OGG)
-    if import_audio:
-        audio_segments = get_audio_segments(segments)
-        if audio_segments:
-            _logger.info(f"Found {len(audio_segments)} audio segments")
-
-        for segment in audio_segments:
-            try:
-                sound_name = f"{stage_name}_audio_{segment.index:04d}"
-
-                # Write to temp file (Blender requires file path to load sounds)
-                with tempfile.NamedTemporaryFile(
-                    suffix=".ogg", delete=False
-                ) as tmp_file:
-                    tmp_file.write(segment.data)
-                    tmp_path = tmp_file.name
-
-                # Load sound into Blender
-                sound = builders.scene.load_sound(tmp_path)
-                builders.scene.set_sound_name(sound, sound_name)
-
-                # Pack the sound data into the blend file so temp file can be deleted
-                builders.scene.pack_sound(sound)
-
-                # Clean up temp file
-                Path(tmp_path).unlink(missing_ok=True)
-
-                _logger.info(f"Imported audio: {sound_name}")
-
-            except Exception as e:
-                _logger.error(f"Error importing audio segment {segment.index}: {e}")
+            _logger.error(f"FMOD blob {i}: import failed: {e}")
 
     return imported_objects

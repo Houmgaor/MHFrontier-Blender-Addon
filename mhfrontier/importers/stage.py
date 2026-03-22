@@ -23,7 +23,7 @@ from .mesh import (
     create_texture_layer,
     set_weights,
 )
-from .stage_container import import_packed_stage, import_segments
+from .stage_container import import_packed_stage
 from .stage_directory import (
     import_unpacked_stage as _import_unpacked_stage,
     import_fmod_file as _import_fmod_file,

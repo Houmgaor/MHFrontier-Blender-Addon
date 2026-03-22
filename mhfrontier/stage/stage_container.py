@@ -16,7 +16,8 @@ from enum import IntEnum
 from io import BytesIO
 from typing import Dict, List, Optional
 
-from .jkr_decompress import is_jkr_file
+from .jkr_decompress import is_jkr_file, decompress_jkr
+from .file_crypto import is_encrypted_file, decrypt_file
 
 
 class FileMagic(IntEnum):
@@ -92,6 +93,30 @@ def detect_segment_type(data: bytes) -> SegmentType:
     return MAGIC_TO_SEGMENT.get(magic, SegmentType.UNKNOWN)
 
 
+def fully_unwrap(data: bytes, max_iterations: int = 4) -> bytes:
+    """
+    Iteratively decrypt and decompress data, mirroring MHBridge's fully_unwrap().
+
+    Applies up to max_iterations rounds of ECD/EXF decryption or JKR
+    decompression until the data is neither encrypted nor compressed.
+
+    :param data: Raw file data (may be encrypted and/or compressed).
+    :param max_iterations: Maximum unwrap rounds (default 4).
+    :return: Unwrapped data.
+    """
+    for _ in range(max_iterations):
+        if is_encrypted_file(data):
+            data = decrypt_file(data)
+        elif is_jkr_file(data):
+            result = decompress_jkr(data)
+            if result is None:
+                break
+            data = result
+        else:
+            break
+    return data
+
+
 def parse_stage_container(data: bytes) -> List[StageSegment]:
     """
     Parse a stage container file.
@@ -159,25 +184,44 @@ def is_stage_container(data: bytes) -> bool:
     """
     Check if data appears to be a stage container.
 
-    Uses heuristics from ReFrontier to detect stage containers:
-    - Check second int < 9999 (small count value)
-    - Check bytes 8-16 are zero (empty first segment usually)
+    Mirrors MHBridge's is_stage_container() bounds-checking logic:
+    - Fixed segment 0 must have a small, valid offset (1–4096) and size within file
+    - rest_count at offset 24 must be <= 1000
+    - rest segment table must fit within the file
 
     :param data: Raw file data.
     :return: True if this appears to be a stage container.
     """
-    if len(data) < 24:
+    if len(data) < 32:
         return False
 
     try:
-        # Read potential header values
-        stream = BytesIO(data)
-        stream.seek(4)  # Skip first offset
-        check_unk = struct.unpack("<I", stream.read(4))[0]
-        check_zero = struct.unpack("<Q", stream.read(8))[0]
+        off0 = struct.unpack_from("<I", data, 0)[0]
+        sz0 = struct.unpack_from("<I", data, 4)[0]
 
-        # Heuristic check from ReFrontier
-        return check_unk < 9999 and check_zero == 0
+        if off0 == 0 or off0 > 4096:
+            return False
+        if sz0 > len(data):
+            return False
+        if off0 + sz0 > len(data):
+            return False
+
+        rest_count = struct.unpack_from("<I", data, 24)[0]
+        if rest_count > 1000:
+            return False
+
+        rest_table_end = 32 + rest_count * 12
+        if rest_table_end > len(data):
+            return False
+
+        # Validate first rest segment if any
+        if rest_count > 0:
+            roff = struct.unpack_from("<I", data, 32)[0]
+            rsz = struct.unpack_from("<I", data, 36)[0]
+            if rsz > 0 and roff + rsz > len(data):
+                return False
+
+        return True
     except Exception:
         return False
 

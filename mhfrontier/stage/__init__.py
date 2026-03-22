@@ -9,7 +9,8 @@ compressed geometry, textures, and object placement data.
 
 from .jkr_decompress import decompress_jkr, JKRHeader, CompressionType
 from .jkr_compress import compress_jkr, compress_jkr_hfi, compress_jkr_raw
-from .stage_container import parse_stage_container, StageSegment, SegmentType, FileMagic
+from .stage_container import parse_stage_container, fully_unwrap, StageSegment, SegmentType, FileMagic
+from .file_crypto import is_encrypted_file, decrypt_file
 from .stage_export import (
     StageSegmentBuilder,
     build_stage_container,
@@ -27,9 +28,13 @@ __all__ = [
     "compress_jkr_raw",
     # Container parsing
     "parse_stage_container",
+    "fully_unwrap",
     "StageSegment",
     "SegmentType",
     "FileMagic",
+    # Decryption
+    "is_encrypted_file",
+    "decrypt_file",
     # Container building
     "StageSegmentBuilder",
     "build_stage_container",
