@@ -223,7 +223,7 @@ class BlenderImageLoader(ImageLoader):
 
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"File {filepath} not found")
-        return bpy.data.images.load(filepath)
+        return bpy.data.images.load(filepath, check_existing=True)
 
 
 class BlenderSceneManager(SceneManager):
