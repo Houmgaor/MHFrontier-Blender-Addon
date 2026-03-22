@@ -7,6 +7,8 @@ Mirrors MHBridge's collect_assets / collect_bundles recursive descent:
 """
 
 import struct
+import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
@@ -52,31 +54,37 @@ def _is_fmod_block(data: bytes) -> bool:
     return block_size == len(data)
 
 
-def _collect_fmod_blobs(data: bytes, depth: int) -> List[bytes]:
+@dataclass
+class _Assets:
+    fmods: List[bytes] = field(default_factory=list)
+    pngs: List[bytes] = field(default_factory=list)
+
+
+def _collect_assets(data: bytes, depth: int) -> _Assets:
     """
-    Recursively collect raw FMOD blobs from a data blob.
+    Recursively collect FMOD blobs and PNG texture blobs from a data blob.
 
     Mirrors MHBridge collect_assets():
       1. fully_unwrap (decrypt ECD/EXF, decompress JKR)
       2. try FMOD block (FileBlock type 0x00000001 with matching size)
-      3. try PNG (skip — no geometry)
+      3. try PNG → collect for texture use
       4. try stage_container → recurse into segments
       5. try PAC archive → recurse into entries
     """
     if depth > _MAX_DEPTH or len(data) < 12:
-        return []
+        return _Assets()
 
     blob = fully_unwrap(data)
 
     # FMOD model: FileBlock with matching total size
     if _is_fmod_block(blob):
-        return [blob]
+        return _Assets(fmods=[blob])
 
-    # PNG texture — skip
+    # PNG texture — collect for later assignment
     if _is_png(blob):
-        return []
+        return _Assets(pngs=[blob])
 
-    results = []
+    result = _Assets()
 
     # Stage container (must check before PAC — no magic bytes, heuristic only)
     if is_stage_container(blob):
@@ -85,23 +93,27 @@ def _collect_fmod_blobs(data: bytes, depth: int) -> List[bytes]:
         for seg in segments:
             if seg.size == 0:
                 continue
-            results.extend(_collect_fmod_blobs(seg.data, depth + 1))
-        return results
+            sub = _collect_assets(seg.data, depth + 1)
+            result.fmods.extend(sub.fmods)
+            result.pngs.extend(sub.pngs)
+        return result
 
     # PAC archive
     if is_pac_archive(blob):
         pac = parse_pac(blob)
         if pac is None:
-            return []
+            return result
         _logger.debug(f"[depth={depth}] PAC: {len(pac.entries)} entries")
         for i in range(len(pac.entries)):
             entry_data = pac.extract(i)
             if not entry_data:
                 continue
-            results.extend(_collect_fmod_blobs(entry_data, depth + 1))
-        return results
+            sub = _collect_assets(entry_data, depth + 1)
+            result.fmods.extend(sub.fmods)
+            result.pngs.extend(sub.pngs)
+        return result
 
-    return []
+    return result
 
 
 def import_packed_stage(
@@ -116,7 +128,12 @@ def import_packed_stage(
     Import a packed stage .pac file.
 
     Recursively descends through PAC archives and stage containers to find
-    FMOD models, mirroring MHBridge's collect_model_bundles / collect_assets.
+    FMOD models and PNG textures, mirroring MHBridge's collect_model_bundles /
+    collect_assets.
+
+    PNG blobs are written to a persistent temp directory so that Blender can
+    reference them by path.  The directory survives the import so that the
+    saved .blend file can still reload the images.
 
     :param stage_path: Path to the stage .pac file.
     :param import_textures: Import textures if available.
@@ -132,12 +149,28 @@ def import_packed_stage(
     with open(stage_path, "rb") as f:
         raw = f.read()
 
-    fmod_blobs = _collect_fmod_blobs(raw, depth=0)
-    _logger.info(f"Found {len(fmod_blobs)} FMOD blobs in {stage_path.name}")
+    assets = _collect_assets(raw, depth=0)
+    _logger.info(
+        f"Found {len(assets.fmods)} FMOD blobs and {len(assets.pngs)} PNG blobs"
+        f" in {stage_path.name}"
+    )
 
-    if not fmod_blobs:
+    if not assets.fmods:
         _logger.warning(f"No FMOD models found in {stage_path}")
         return []
+
+    # Write PNG textures to a persistent temp directory so Blender can load them.
+    # Named 0000.png, 0001.png, … so that sorted order matches imageID indices.
+    texture_search_path: Optional[str] = None
+    if import_textures and assets.pngs:
+        tex_dir = Path(tempfile.mkdtemp(prefix=f"mhf_{stage_path.stem}_"))
+        png_subdir = tex_dir / "textures"
+        png_subdir.mkdir()
+        for idx, png_blob in enumerate(assets.pngs):
+            (png_subdir / f"{idx:04d}.png").write_bytes(png_blob)
+        # Pass a fake file path inside png_subdir so find_all_textures() searches it
+        texture_search_path = str(png_subdir / "dummy.fmod")
+        _logger.info(f"Wrote {len(assets.pngs)} textures to {png_subdir}")
 
     collection = None
     if create_collection:
@@ -145,13 +178,14 @@ def import_packed_stage(
         builders.scene.link_collection_to_scene(collection)
 
     imported_objects: List[Any] = []
-    for i, blob in enumerate(fmod_blobs):
+    for i, blob in enumerate(assets.fmods):
         try:
             objects = import_fmod_from_bytes_func(
                 blob,
                 f"Stage_{i:04d}",
                 import_textures,
                 collection,
+                texture_search_path,
             )
             imported_objects.extend(objects)
         except Exception as e:
